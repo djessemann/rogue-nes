@@ -176,11 +176,11 @@ _frame_counter: .res 1
 
 .export _ppu_wait_vblank
 .proc _ppu_wait_vblank
-    lda #0
-    sta nmi_ready
+    ; Use $2002 polling - works whether NMI is enabled or not
+    lda $2002           ; Clear vblank flag first
 @wait:
-    lda nmi_ready
-    beq @wait
+    lda $2002           ; Read PPU status
+    bpl @wait           ; Loop until bit 7 (vblank) is set
     rts
 .endproc
 
