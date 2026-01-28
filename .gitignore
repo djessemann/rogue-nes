@@ -1,0 +1,17 @@
+# Build artifacts
+build/
+*.o
+*.s.bak
+
+# ROM output (keeping rogue.nes for easy testing)
+# *.nes
+
+# Editor files
+*.swp
+*~
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
