@@ -224,7 +224,9 @@
 ; ============================================================
 .proc state_gameplay
     lda state_initialized
-    bne @update
+    beq @init
+    jmp @update
+@init:
 
     ; --- Init ---
     ; Disable NMI and rendering for safe PPU access
@@ -288,11 +290,21 @@
     ; Draw HUD
     jsr hud_draw
 
-    ; Welcome message
+    ; Show welcome or descent message
+    lda dungeon_level
+    beq @welcome_msg
+    ; Descending to deeper level
+    lda #<str_descend
+    sta ptr_lo
+    lda #>str_descend
+    sta ptr_hi
+    jmp @show_msg
+@welcome_msg:
     lda #<str_welcome
     sta ptr_lo
     lda #>str_welcome
     sta ptr_hi
+@show_msg:
     jsr msg_show
 
     ; Enable rendering (NMI will flush VRAM buffer)

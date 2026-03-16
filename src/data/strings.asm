@@ -15,6 +15,9 @@ str_press_start:
 str_welcome:
     .byte "Welcome to the dungeon!", $00
 
+str_descend:
+    .byte "You descend deeper...", $00
+
 str_you_died:
     .byte "YOU DIED", $00
 
