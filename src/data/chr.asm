@@ -708,9 +708,36 @@
     .byte $00,$00,$00,$00,$00,$00,$FE,$FE
 
 ; ===========================================
-; Padding $94-$FF (108 blank tiles)
+; Large title digits: "6502" as BG tiles $94-$98
+; Reuses existing letter tiles where possible:
+;   6 = G-top + O-bottom (tiles $88,$89,$86,$87)
+;   0 = O (tiles $84,$85,$86,$87)
+; New tiles needed: 5-TL, 5-TR, 5-BL, 2-TL, 2-TR
 ; ===========================================
-.repeat 108
+
+; --- 5: tiles $94-$96 (new) + $87 (reuse O-BR) ---
+; 5 top-left ($94): top bar, left vert, mid bar, then empty
+    .byte $FF,$FF,$E0,$E0,$E0,$FF,$FF,$00
+    .byte $FF,$FF,$E0,$E0,$E0,$FF,$FF,$00
+; 5 top-right ($95): top bar, empty, mid bar curving right
+    .byte $FE,$FE,$00,$00,$00,$F8,$FC,$0E
+    .byte $FE,$FE,$00,$00,$00,$F8,$FC,$0E
+; 5 bottom-left ($96): empty then bottom-left curve
+    .byte $00,$00,$00,$00,$00,$70,$3F,$1F
+    .byte $00,$00,$00,$00,$00,$70,$3F,$1F
+
+; --- 2: tiles $97-$98 (new) + $92,$93 (reuse E-BL, E-BR) ---
+; 2 top-left ($97): top curve, empty, mid bar, left vert
+    .byte $1F,$3F,$70,$00,$00,$FF,$FF,$E0
+    .byte $1F,$3F,$70,$00,$00,$FF,$FF,$E0
+; 2 top-right ($98): top curve, right vert, mid bar, empty
+    .byte $F8,$FC,$0E,$07,$07,$FE,$FE,$00
+    .byte $F8,$FC,$0E,$07,$07,$FE,$FE,$00
+
+; ===========================================
+; Padding $99-$FF (103 blank tiles)
+; ===========================================
+.repeat 103
     .byte $00,$00,$00,$00,$00,$00,$00,$00
     .byte $00,$00,$00,$00,$00,$00,$00,$00
 .endrepeat
