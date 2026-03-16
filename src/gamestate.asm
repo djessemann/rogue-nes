@@ -245,6 +245,7 @@
     lda #>palette_dungeon
     sta ptr_hi
     jsr load_palettes
+    jsr set_level_bg_color
 
     ; Generate dungeon
     jsr dungeon_generate
@@ -657,6 +658,7 @@
     lda #>palette_dungeon
     sta ptr_hi
     jsr load_palettes
+    jsr set_level_bg_color
     jsr do_screen_flip          ; Redraw viewport, HUD, re-enable rendering
 @done:
     rts

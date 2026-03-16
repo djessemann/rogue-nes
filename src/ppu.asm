@@ -34,6 +34,43 @@
 .endproc
 
 ; ------------------------------------------------------------
+; set_level_bg_color
+; Override the universal background color ($3F00) based on
+; dungeon_level. Must be called after load_palettes with
+; rendering disabled.
+; ------------------------------------------------------------
+.proc set_level_bg_color
+    lda dungeon_level
+@mod_loop:
+    cmp #13                     ; 13 colors in table
+    bcc @got_index
+    sec
+    sbc #13
+    jmp @mod_loop
+@got_index:
+    tax
+    lda level_bg_colors, x
+
+    ; Write to PPU $3F00 (universal background)
+    pha
+    lda $2002                   ; Reset PPU latch
+    lda #$3F
+    sta $2006
+    lda #$00
+    sta $2006
+    pla
+    sta $2007
+
+    ; Reset PPU address and scroll
+    lda #$00
+    sta $2006
+    sta $2006
+    sta $2005
+    sta $2005
+    rts
+.endproc
+
+; ------------------------------------------------------------
 ; clear_nametable
 ; Fill nametable 0 ($2000-$23FF) with tile $00 and zero attributes.
 ; Must be called with rendering disabled.
