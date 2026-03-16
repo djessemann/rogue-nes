@@ -26,9 +26,9 @@ mon_xp:
 mon_level:
     .byte 1, 1, 1, 1, 2
 
-; Max damage per hit (matches classic Rogue damage dice)
+; Max damage per hit (reduced ~20% from classic Rogue damage dice)
 mon_damage:
-    .byte 2, 2, 8, 3, 8        ; B:1d2, E:1d2, H:1d8, S:1d3, Z:1d8
+    .byte 2, 2, 6, 2, 6        ; B:1d2, E:1d2, H:1d6, S:1d2, Z:1d6
 
 ; Base flags (aggressive, erratic, etc.)
 ; Classic Rogue: Bat=flying(not mean), Emu=MEAN, H/S/Z=mean

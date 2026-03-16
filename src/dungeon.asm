@@ -570,9 +570,9 @@
 
     stx temp_room_idx
 
-    ; 60% chance of monster per room
+    ; 72% chance of monster per room (~20% more frequent)
     jsr rng_next
-    cmp #153                    ; ~60% of 256
+    cmp #184                    ; ~72% of 256
     bcs @skip
 
     ; Don't exceed max
