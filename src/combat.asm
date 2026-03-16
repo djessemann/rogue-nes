@@ -256,11 +256,11 @@
     ; Level up!
     inc player_level
 
-    ; Increase max HP by 2-9
-    lda #$08
-    jsr rng_range               ; 0-7
+    ; Increase max HP by 1-10 (1d10, matches original Rogue)
+    lda #$0A
+    jsr rng_range               ; 0-9
     clc
-    adc #$02                    ; 2-9
+    adc #$01                    ; 1-10
     clc
     adc player_max_hp
     bcc @hp_ok
@@ -271,6 +271,23 @@
     ; Fully heal
     lda player_max_hp
     sta player_hp
+
+    ; Increase strength by 1 every level (like finding strength potions)
+    lda player_str
+    cmp #$FF
+    bcs @str_ok
+    inc player_str
+@str_ok:
+
+    ; Increase defense by 1 every other level (like finding better armor)
+    lda player_level
+    and #$01                    ; Check if new level is even
+    bne @def_ok                 ; Odd level — skip defense bump
+    lda player_def
+    cmp #$FF
+    bcs @def_ok
+    inc player_def
+@def_ok:
 
     ; Show message (high priority)
     lda #$02
