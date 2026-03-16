@@ -141,6 +141,24 @@ mon_name_hi:
     .byte >str_mon_bat, >str_mon_emu, >str_mon_hobgoblin, >str_mon_snake, >str_mon_zombie
 
 ; ============================================================
+; Title screen BG tile rows — "ROGUE 6502" (28 tiles wide)
+; Centered: start at col 2, (32-28)/2 = 2
+; Letters reuse existing tiles, digits reuse where possible:
+;   6 = G-top($88,$89) + O-bot($86,$87)
+;   0 = O($84,$85,$86,$87)
+;   5 = new($94,$95,$96) + O-BR($87)
+;   2 = new($97,$98) + E-bot($92,$93)
+; ============================================================
+TITLE_ROW_LEN = 28
+
+title_top_row:
+    ;     R           O           G           U           E              6           5           0           2
+    .byte $80,$81,$20,$84,$85,$20,$88,$89,$20,$8C,$8D,$20,$90,$91,$20,$20,$20,$88,$89,$20,$94,$95,$20,$84,$85,$20,$97,$98
+
+title_bot_row:
+    .byte $82,$83,$20,$86,$87,$20,$8A,$8B,$20,$8E,$8F,$20,$92,$93,$20,$20,$20,$86,$87,$20,$96,$87,$20,$86,$87,$20,$92,$93
+
+; ============================================================
 ; Title screen OAM data — "ROGUE" in large sprites
 ; 20 entries: Y-1, tile, attributes, X
 ; Centered: total width = 5*16 + 4*8 = 112, x_start = (256-112)/2 = 72
