@@ -73,33 +73,76 @@
     sta ptr_hi
     jsr load_palettes
 
-    ; --- Draw "ROGUE 6502" as background tiles (2x2 per letter) ---
-    ; Row 10 (top halves): PPU $2142 = row 10, col 2
+    ; --- Draw "ROGUE" as background tiles (2x2 per letter) ---
+    ; Row 10 (top halves): PPU $2149 = row 10, col 9
     lda $2002                   ; Reset PPU latch
     lda #$21
     sta $2006
-    lda #$42
+    lda #$49
     sta $2006
-    ldx #0
-@title_top:
-    lda title_top_row, x
+    ; R-TL, R-TR, space, O-TL, O-TR, space, G-TL, G-TR, space, U-TL, U-TR, space, E-TL, E-TR
+    lda #$80
     sta $2007
-    inx
-    cpx #TITLE_ROW_LEN
-    bne @title_top
+    lda #$81
+    sta $2007
+    lda #$20                    ; space between letters
+    sta $2007
+    lda #$84
+    sta $2007
+    lda #$85
+    sta $2007
+    lda #$20
+    sta $2007
+    lda #$88
+    sta $2007
+    lda #$89
+    sta $2007
+    lda #$20
+    sta $2007
+    lda #$8C
+    sta $2007
+    lda #$8D
+    sta $2007
+    lda #$20
+    sta $2007
+    lda #$90
+    sta $2007
+    lda #$91
+    sta $2007
 
-    ; Row 11 (bottom halves): PPU $2162 = row 11, col 2
+    ; Row 11 (bottom halves): PPU $2169 = row 11, col 9
     lda #$21
     sta $2006
-    lda #$62
+    lda #$69
     sta $2006
-    ldx #0
-@title_bot:
-    lda title_bot_row, x
+    lda #$82
     sta $2007
-    inx
-    cpx #TITLE_ROW_LEN
-    bne @title_bot
+    lda #$83
+    sta $2007
+    lda #$20
+    sta $2007
+    lda #$86
+    sta $2007
+    lda #$87
+    sta $2007
+    lda #$20
+    sta $2007
+    lda #$8A
+    sta $2007
+    lda #$8B
+    sta $2007
+    lda #$20
+    sta $2007
+    lda #$8E
+    sta $2007
+    lda #$8F
+    sta $2007
+    lda #$20
+    sta $2007
+    lda #$92
+    sta $2007
+    lda #$93
+    sta $2007
 
     ; --- Draw "PRESS START" as background text ---
     lda #<str_press_start
