@@ -19,7 +19,7 @@ palette_title:
 ; Per-level background colors (NES row 0 darks, 13 entries)
 ; Cycles through all dark hues, one per dungeon level
 level_bg_colors:
-    .byte $0F               ; Level 0: black (classic)
+    .byte $0F               ; Level 0: black
     .byte $02               ; Level 1: dark indigo
     .byte $06               ; Level 2: dark red
     .byte $09               ; Level 3: dark green
@@ -32,6 +32,22 @@ level_bg_colors:
     .byte $04               ; Level 10: dark magenta
     .byte $0A               ; Level 11: dark forest
     .byte $00               ; Level 12: dark gray
+
+; Per-level wall colors (lighter complement to background)
+level_wall_colors:
+    .byte $00               ; Level 0: dark gray (classic)
+    .byte $12               ; Level 1: medium blue
+    .byte $16               ; Level 2: medium red
+    .byte $19               ; Level 3: medium green
+    .byte $13               ; Level 4: medium purple
+    .byte $17               ; Level 5: medium brown
+    .byte $1C               ; Level 6: medium cyan
+    .byte $15               ; Level 7: medium pink
+    .byte $18               ; Level 8: medium olive
+    .byte $11               ; Level 9: medium blue
+    .byte $14               ; Level 10: medium magenta
+    .byte $1A               ; Level 11: medium green
+    .byte $10               ; Level 12: medium gray
 
 ; Dungeon gameplay palette
 palette_dungeon:
