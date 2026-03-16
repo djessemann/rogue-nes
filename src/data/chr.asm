@@ -708,11 +708,12 @@
     .byte $00,$00,$00,$00,$00,$00,$FE,$FE
 
 ; ===========================================
-; Large title digits: "6502" as BG tiles $94-$98
+; Large title digits: "6502" as BG tiles $94-$9A
 ; Reuses existing letter tiles where possible:
-;   6 = G-top + O-bottom (tiles $88,$89,$86,$87)
 ;   0 = O (tiles $84,$85,$86,$87)
-; New tiles needed: 5-TL, 5-TR, 5-BL, 2-TL, 2-TR
+;   6-bottom = O-bottom ($86,$87)
+;   5-BR = O-BR ($87)
+;   2-bottom = E-bottom ($92,$93)
 ; ===========================================
 
 ; --- 5: tiles $94-$96 (new) + $87 (reuse O-BR) ---
@@ -734,10 +735,20 @@
     .byte $F8,$FC,$0E,$07,$07,$FE,$FE,$00
     .byte $F8,$FC,$0E,$07,$07,$FE,$FE,$00
 
+; --- 6: tiles $99-$9A (new) + $86,$87 (reuse O-BL, O-BR) ---
+; 6 top-left ($99): top curve, left vert, mid bar, left vert
+;   Like O top-left but with mid-bar at rows 5-6
+    .byte $1F,$3F,$70,$E0,$E0,$FF,$FF,$E0
+    .byte $1F,$3F,$70,$E0,$E0,$FF,$FF,$E0
+; 6 top-right ($9A): top curve, NO right vert, mid bar, right vert starts
+;   Top curve closes but right side drops away, then mid-bar reconnects
+    .byte $F8,$FC,$0E,$00,$00,$FE,$FE,$07
+    .byte $F8,$FC,$0E,$00,$00,$FE,$FE,$07
+
 ; ===========================================
-; Padding $99-$FF (103 blank tiles)
+; Padding $9B-$FF (101 blank tiles)
 ; ===========================================
-.repeat 103
+.repeat 101
     .byte $00,$00,$00,$00,$00,$00,$00,$00
     .byte $00,$00,$00,$00,$00,$00,$00,$00
 .endrepeat
