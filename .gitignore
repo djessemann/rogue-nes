@@ -1,6 +1,8 @@
 # Build artifacts
 *.o
-*.nes
 *.lst
 *.map
 listing.txt
+
+# Keep the built ROM
+!rogue-nes.nes
