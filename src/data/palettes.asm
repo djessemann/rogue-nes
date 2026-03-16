@@ -33,9 +33,9 @@ level_bg_colors:
     .byte $0A               ; Level 11: dark forest
     .byte $00               ; Level 12: dark gray
 
-; Per-level wall colors (lighter complement to background)
+; Per-level wall border colors (row 1 medium, same hue as bg)
 level_wall_colors:
-    .byte $00               ; Level 0: dark gray (classic)
+    .byte $00               ; Level 0: dark gray
     .byte $12               ; Level 1: medium blue
     .byte $16               ; Level 2: medium red
     .byte $19               ; Level 3: medium green
@@ -48,6 +48,22 @@ level_wall_colors:
     .byte $14               ; Level 10: medium magenta
     .byte $1A               ; Level 11: medium green
     .byte $10               ; Level 12: medium gray
+
+; Per-level wall inner colors (row 2-3 light, same hue as bg)
+level_wall_inner_colors:
+    .byte $10               ; Level 0: light gray (classic)
+    .byte $22               ; Level 1: light blue
+    .byte $26               ; Level 2: light red/salmon
+    .byte $29               ; Level 3: light green
+    .byte $23               ; Level 4: light purple
+    .byte $27               ; Level 5: light orange
+    .byte $2C               ; Level 6: light cyan
+    .byte $25               ; Level 7: light pink
+    .byte $28               ; Level 8: light yellow-green
+    .byte $21               ; Level 9: light blue
+    .byte $24               ; Level 10: light magenta
+    .byte $2A               ; Level 11: light green
+    .byte $20               ; Level 12: light gray
 
 ; Dungeon gameplay palette
 palette_dungeon:

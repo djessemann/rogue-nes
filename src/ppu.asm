@@ -60,7 +60,16 @@
     lda level_bg_colors, x
     sta $2007
 
-    ; Write wall color to PPU $3F03 (BG0 color 3)
+    ; Write wall inner color to PPU $3F02 (BG0 color 2)
+    lda $2002
+    lda #$3F
+    sta $2006
+    lda #$02
+    sta $2006
+    lda level_wall_inner_colors, x
+    sta $2007
+
+    ; Write wall border color to PPU $3F03 (BG0 color 3)
     lda $2002
     lda #$3F
     sta $2006
