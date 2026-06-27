@@ -73,33 +73,36 @@
     sta ptr_hi
     jsr load_palettes
 
-    ; --- Draw "ROGUE 6502" as background tiles (2x2 per letter) ---
-    ; Row 10 (top halves): PPU $2142 = row 10, col 2
-    lda $2002                   ; Reset PPU latch
-    lda #$21
-    sta $2006
-    lda #$42
-    sta $2006
-    ldx #0
-@title_top:
-    lda title_top_row, x
-    sta $2007
-    inx
-    cpx #TITLE_ROW_LEN
-    bne @title_top
+    ; --- Draw the title in giant block letters ---
+    ; Each letter is "tiled" from a single existing in-game tile
+    ; (the dungeon wall block), Donkey-Kong style, rather than from
+    ; many bespoke letter-shaped tiles.
+    ;
+    ; "ROGUE" — 5 glyphs wide, centered, rows 4-8
+    lda #<word_rogue
+    sta ptr_lo
+    lda #>word_rogue
+    sta ptr_hi
+    lda #4                      ; start column (centered)
+    sta temp_1
+    lda #4                      ; start row
+    sta temp_2
+    lda #CHR_WALL               ; <- the single tile we build letters from
+    sta temp_4
+    jsr draw_block_word
 
-    ; Row 11 (bottom halves): PPU $2162 = row 11, col 2
-    lda #$21
-    sta $2006
-    lda #$62
-    sta $2006
-    ldx #0
-@title_bot:
-    lda title_bot_row, x
-    sta $2007
-    inx
-    cpx #TITLE_ROW_LEN
-    bne @title_bot
+    ; "6502" — 4 glyphs wide, centered, rows 11-15
+    lda #<word_6502
+    sta ptr_lo
+    lda #>word_6502
+    sta ptr_hi
+    lda #6                      ; start column (centered)
+    sta temp_1
+    lda #11                     ; start row
+    sta temp_2
+    lda #CHR_WALL
+    sta temp_4
+    jsr draw_block_word
 
     ; --- Draw "PRESS START" as background text ---
     lda #<str_press_start
@@ -108,7 +111,7 @@
     sta ptr_hi
     lda #10                     ; X position (centered)
     sta temp_1
-    lda #16                     ; Y position (below the title)
+    lda #20                     ; Y position (below the title)
     sta temp_2
     jsr draw_text
 
@@ -132,10 +135,10 @@
     lda frame_counter
     and #$20                    ; Toggle every 32 frames
     beq @press_visible
-    ; Hide: clear row 16 via VRAM buffer
+    ; Hide: clear the PRESS START row via VRAM buffer
     lda #$00
     sta temp_1
-    lda #16
+    lda #20
     sta temp_2
     jsr clear_msg_row
     jmp @check_start
@@ -147,7 +150,7 @@
     sta ptr_hi
     lda #10
     sta temp_1
-    lda #16
+    lda #20
     sta temp_2
     jsr draw_text
 

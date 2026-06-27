@@ -141,52 +141,54 @@ mon_name_hi:
     .byte >str_mon_bat, >str_mon_emu, >str_mon_hobgoblin, >str_mon_snake, >str_mon_zombie
 
 ; ============================================================
-; Title screen BG tile rows — "ROGUE 6502" (28 tiles wide)
-; Centered: start at col 2, (32-28)/2 = 2
-; Letters reuse existing tiles, digits reuse where possible:
-;   6 = G-top($88,$89) + O-bot($86,$87)
-;   0 = O($84,$85,$86,$87)
-;   5 = new($94,$95,$96) + O-BR($87)
-;   2 = new($97,$98) + E-bot($92,$93)
+; Block-letter title font (Donkey Kong style)
+;
+; Instead of hand-drawing each letter from many bespoke tiles,
+; the title is now "tiled" from a SINGLE existing in-game tile
+; (the dungeon wall block, CHR_WALL) repeated on a grid — exactly
+; how the Donkey Kong title screen builds its giant letters from
+; one repeated block. draw_block_word reads these bitmaps and
+; stamps the wall tile wherever a bit is set.
+;
+; Each glyph is 4 cells wide x 5 cells tall. Each row is stored
+; as one byte; only the low 4 bits are used (bit3 = leftmost
+; column ... bit0 = rightmost). A set bit = place the block tile.
 ; ============================================================
-TITLE_ROW_LEN = 28
+BLOCK_GLYPH_H = 5               ; rows per glyph
 
-title_top_row:
-    ;     R           O           G           U           E              6           5           0           2
-    .byte $80,$81,$20,$84,$85,$20,$88,$89,$20,$8C,$8D,$20,$90,$91,$20,$20,$20,$99,$9A,$20,$94,$95,$20,$84,$85,$20,$97,$98
+; Glyph indices (offsets into block_font, in units of glyphs)
+GLYPH_R = 0
+GLYPH_O = 1
+GLYPH_G = 2
+GLYPH_U = 3
+GLYPH_E = 4
+GLYPH_6 = 5
+GLYPH_5 = 6
+GLYPH_0 = 7
+GLYPH_2 = 8
 
-title_bot_row:
-    .byte $82,$83,$20,$86,$87,$20,$8A,$8B,$20,$8E,$8F,$20,$92,$93,$20,$20,$20,$86,$87,$20,$96,$87,$20,$86,$87,$20,$92,$93
+block_font:
+    ; R
+    .byte %1110, %1001, %1110, %1010, %1001
+    ; O
+    .byte %0110, %1001, %1001, %1001, %0110
+    ; G
+    .byte %0111, %1000, %1011, %1001, %0111
+    ; U
+    .byte %1001, %1001, %1001, %1001, %0110
+    ; E
+    .byte %1111, %1000, %1110, %1000, %1111
+    ; 6
+    .byte %0111, %1000, %1110, %1001, %0110
+    ; 5
+    .byte %1111, %1000, %1110, %0001, %1110
+    ; 0
+    .byte %0110, %1001, %1011, %1101, %0110
+    ; 2
+    .byte %1110, %0001, %0110, %1000, %1111
 
-; ============================================================
-; Title screen OAM data — "ROGUE" in large sprites
-; 20 entries: Y-1, tile, attributes, X
-; Centered: total width = 5*16 + 4*8 = 112, x_start = (256-112)/2 = 72
-; Y position: y=80 (upper third)
-; ============================================================
-title_oam_data:
-    ; R (x=72): tiles $01-$04
-    .byte  79, $01, $00,  72    ; R top-left
-    .byte  79, $02, $00,  80    ; R top-right
-    .byte  87, $03, $00,  72    ; R bottom-left
-    .byte  87, $04, $00,  80    ; R bottom-right
-    ; O (x=96): tiles $05-$08
-    .byte  79, $05, $00,  96    ; O top-left
-    .byte  79, $06, $00, 104    ; O top-right
-    .byte  87, $07, $00,  96    ; O bottom-left
-    .byte  87, $08, $00, 104    ; O bottom-right
-    ; G (x=120): tiles $09-$0C
-    .byte  79, $09, $00, 120    ; G top-left
-    .byte  79, $0A, $00, 128    ; G top-right
-    .byte  87, $0B, $00, 120    ; G bottom-left
-    .byte  87, $0C, $00, 128    ; G bottom-right
-    ; U (x=144): tiles $0D-$10
-    .byte  79, $0D, $00, 144    ; U top-left
-    .byte  79, $0E, $00, 152    ; U top-right
-    .byte  87, $0F, $00, 144    ; U bottom-left
-    .byte  87, $10, $00, 152    ; U bottom-right
-    ; E (x=168): tiles $11-$14
-    .byte  79, $11, $00, 168    ; E top-left
-    .byte  79, $12, $00, 176    ; E top-right
-    .byte  87, $13, $00, 168    ; E bottom-left
-    .byte  87, $14, $00, 176    ; E bottom-right
+; Word = list of glyph indices, terminated by $FF
+word_rogue:
+    .byte GLYPH_R, GLYPH_O, GLYPH_G, GLYPH_U, GLYPH_E, $FF
+word_6502:
+    .byte GLYPH_6, GLYPH_5, GLYPH_0, GLYPH_2, $FF

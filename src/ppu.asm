@@ -506,6 +506,101 @@
 .endproc
 
 ; ------------------------------------------------------------
+; draw_block_word
+; Draw a word in giant block letters by tiling a single tile
+; (Donkey-Kong-style), directly to PPU. Rendering must be OFF.
+;
+; Each glyph is 4 cells wide x BLOCK_GLYPH_H tall; a 1-cell gap is
+; written after every glyph. For each set bit in the glyph bitmap
+; the on-tile is stamped, otherwise a blank ($00) is written.
+;
+; Input: ptr_lo/ptr_hi = glyph-index list ($FF terminated)
+;        temp_1 = start column (0-31)
+;        temp_2 = start row (top, 0-29)
+;        temp_4 = "on" tile index to tile the letters from
+; Clobbers: A, X, Y, temp_3, addr_temp_lo, addr_temp_hi
+; ------------------------------------------------------------
+.proc draw_block_word
+    lda #$00
+    sta temp_3                  ; temp_3 = current glyph row (0..H-1)
+@row_loop:
+    ; --- Set PPU address for (temp_1, temp_2 + temp_3) ---
+    lda $2002                   ; Reset PPU latch
+    lda temp_2
+    clc
+    adc temp_3                  ; effective row
+    pha
+    lsr a
+    lsr a
+    lsr a
+    clc
+    adc #$20                    ; high byte = $20 + (row >> 3)
+    sta $2006
+    pla
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; (row & 7) << 5
+    clc
+    adc temp_1                  ; + start column  (always < 256)
+    sta $2006
+
+    ; --- Walk the glyph list for this row ---
+    ldy #$00                    ; Y = index into glyph list
+@glyph_loop:
+    lda (ptr_lo), y
+    cmp #$FF
+    beq @row_done
+    ; font offset = glyph*5 + row  (5 = 4 + 1)
+    sta addr_temp_lo            ; save glyph index
+    asl a
+    asl a                       ; glyph * 4
+    clc
+    adc addr_temp_lo            ; glyph * 5
+    clc
+    adc temp_3                  ; + row
+    tax
+    lda block_font, x
+    sta addr_temp_hi            ; row bit pattern (low nibble)
+
+    ; Emit 4 columns, MSB (bit3) first
+    lda #%1000
+    jsr @emit_col
+    lda #%0100
+    jsr @emit_col
+    lda #%0010
+    jsr @emit_col
+    lda #%0001
+    jsr @emit_col
+
+    ; Inter-letter gap
+    lda #$00
+    sta $2007
+
+    iny
+    jmp @glyph_loop
+@row_done:
+    inc temp_3
+    lda temp_3
+    cmp #BLOCK_GLYPH_H
+    bne @row_loop
+    rts
+
+; Emit one cell: A = bit mask to test against addr_temp_hi
+@emit_col:
+    and addr_temp_hi
+    beq @off
+    lda temp_4                  ; bit set -> stamp the block tile
+    sta $2007
+    rts
+@off:
+    lda #$00                    ; bit clear -> blank
+    sta $2007
+    rts
+.endproc
+
+; ------------------------------------------------------------
 ; ppu_draw_text
 ; Draw null-terminated string directly to PPU (rendering off).
 ; Input: ptr_lo/ptr_hi = string, temp_1 = X, temp_2 = Y
