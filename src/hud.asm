@@ -1,7 +1,8 @@
 ; ============================================================
 ; HUD — Compact status bar on one row
-; Row 2: HP, Lv, Fl, Gold (16px blank margin above, SMB-style)
-; Rows 0-1: blank top margin (keeps stats clear of TV overscan)
+; Row 0: blank top margin (keeps stats clear of TV overscan)
+; Row 1: HP, Lv, Fl, Gold
+; Row 2: top divider (drawn by map_draw_viewport)
 ; ============================================================
 .segment "CODE"
 

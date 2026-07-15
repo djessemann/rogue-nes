@@ -95,11 +95,21 @@
     jsr map_draw_monsters_direct
     jsr map_draw_items_direct
 
-    ; --- Draw divider line ---
-    ; Top divider removed: the stats bar now sits at row 2 with a
-    ; 16px blank margin above it (SMB-style), so no top divider is drawn.
+    ; --- Draw divider lines ---
+    ; Row 2 divider (top, below the stats bar at row 1)
+    lda $2002
+    lda #$20
+    sta $2006
+    lda #$40                    ; Row 2 = $2000 + 2*32 = $2040
+    sta $2006
+    ldx #$20                    ; 32 tiles
+    lda #CHR_DIVIDER
+@div1:
+    sta $2007
+    dex
+    bne @div1
 
-    ; Row 27 divider (bottom, above message lines)
+    ; Row 27 divider (bottom, above message line)
     lda $2002
     lda #$23
     sta $2006

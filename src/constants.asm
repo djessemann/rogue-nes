@@ -13,11 +13,12 @@ VIEW_H          = 24            ; Viewport height (one screen)
 MAP_TOP_ROW     = 3             ; First tile row of dungeon on screen
 MAP_ROWS        = VIEW_H       ; Visible map rows on screen
 MAP_COLS        = VIEW_W       ; Visible map cols on screen
-HUD_ROW_0       = 2             ; Stats bar row (16px top margin, SMB-style)
-HUD_ROW_1       = 3             ; Stats bar row 2 (unused in gameplay)
-HUD_DIVIDER_1   = 27            ; Bottom divider
-MSG_ROW_0       = 28            ; Message line 1 (newest, top)
-MSG_ROW_1       = 29            ; Message line 2 (oldest, bottom)
+HUD_ROW_0       = 1             ; Stats bar row (8px top margin, SMB-style)
+HUD_ROW_1       = 2             ; (unused in gameplay)
+HUD_DIVIDER_0   = 2             ; Top divider (separates stats from map)
+HUD_DIVIDER_1   = 27            ; Bottom divider (separates map from message)
+MSG_ROW_0       = 28            ; Message line
+MSG_ROW_1       = 29            ; (unused; blank 8px bottom margin)
 
 ; --- Map Tile Types ---
 TILE_WALL       = 0
