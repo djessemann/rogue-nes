@@ -55,19 +55,19 @@
     .byte %00000000, %00000000, %00000000, %00000000
 
 ; ===========================================
-; TILE $03: Floor (center dot)
+; TILE $03: Floor (center dot) — bitplane 1 only = palette color 2 (gray)
 ; ===========================================
+    .byte %00000000, %00000000, %00000000, %00000000
+    .byte %00000000, %00000000, %00000000, %00000000
     .byte %00000000, %00000000, %00000000, %00011000
     .byte %00011000, %00000000, %00000000, %00000000
-    .byte %00000000, %00000000, %00000000, %00000000
-    .byte %00000000, %00000000, %00000000, %00000000
 
 ; ===========================================
-; TILE $04: Corridor (small dot)
+; TILE $04: Corridor (small dot) — bitplane 1 only = palette color 2 (gray)
 ; ===========================================
+    .byte %00000000, %00000000, %00000000, %00000000
+    .byte %00000000, %00000000, %00000000, %00000000
     .byte %00000000, %00000000, %00000000, %00010000
-    .byte %00000000, %00000000, %00000000, %00000000
-    .byte %00000000, %00000000, %00000000, %00000000
     .byte %00000000, %00000000, %00000000, %00000000
 
 ; ===========================================
@@ -338,11 +338,28 @@
     .byte %00000000, %00000000, %00000000, %00000000
     .byte %00000000, %00000000, %00000000, %00000000
 
-; $3B-$40: simplified (blank for now)
-.repeat 6
+; $3B: ; (blank)
     .byte $00,$00,$00,$00,$00,$00,$00,$00
     .byte $00,$00,$00,$00,$00,$00,$00,$00
-.endrepeat
+; $3C: < (left arrow)
+    .byte %00000100, %00001000, %00010000, %00100000
+    .byte %00010000, %00001000, %00000100, %00000000
+    .byte %00000000, %00000000, %00000000, %00000000
+    .byte %00000000, %00000000, %00000000, %00000000
+; $3D: = (blank)
+    .byte $00,$00,$00,$00,$00,$00,$00,$00
+    .byte $00,$00,$00,$00,$00,$00,$00,$00
+; $3E: > (right arrow — inventory cursor)
+    .byte %00100000, %00010000, %00001000, %00000100
+    .byte %00001000, %00010000, %00100000, %00000000
+    .byte %00000000, %00000000, %00000000, %00000000
+    .byte %00000000, %00000000, %00000000, %00000000
+; $3F: ? (blank)
+    .byte $00,$00,$00,$00,$00,$00,$00,$00
+    .byte $00,$00,$00,$00,$00,$00,$00,$00
+; $40: @ (blank)
+    .byte $00,$00,$00,$00,$00,$00,$00,$00
+    .byte $00,$00,$00,$00,$00,$00,$00,$00
 
 ; ===========================================
 ; TILES $41-$5A: Uppercase letters A-Z
@@ -708,47 +725,71 @@
     .byte $00,$00,$00,$00,$00,$00,$FE,$FE
 
 ; ===========================================
-; Large title digits: "6502" as BG tiles $94-$9A
-; Reuses existing letter tiles where possible:
-;   0 = O (tiles $84,$85,$86,$87)
-;   6-bottom = O-bottom ($86,$87)
-;   5-BR = O-BR ($87)
-;   2-bottom = E-bottom ($92,$93)
+; Large title digits: "6502" as BG tiles $94-$A3
+; Each digit has 4 dedicated tiles (TL, TR, BL, BR)
+; No reuse from ROGUE letter tiles.
 ; ===========================================
 
-; --- 5: tiles $94-$96 (new) + $87 (reuse O-BR) ---
-; 5 top-left ($94): top bar, left vert, mid bar, then empty
-    .byte $FF,$FF,$E0,$E0,$E0,$FF,$FF,$00
-    .byte $FF,$FF,$E0,$E0,$E0,$FF,$FF,$00
-; 5 top-right ($95): top bar, empty, mid bar curving right
-    .byte $FE,$FE,$00,$00,$00,$F8,$FC,$0E
-    .byte $FE,$FE,$00,$00,$00,$F8,$FC,$0E
-; 5 bottom-left ($96): empty then bottom-left curve
-    .byte $00,$00,$00,$00,$00,$70,$3F,$1F
-    .byte $00,$00,$00,$00,$00,$70,$3F,$1F
-
-; --- 2: tiles $97-$98 (new) + $92,$93 (reuse E-BL, E-BR) ---
-; 2 top-left ($97): top curve, empty, mid bar, left vert
-    .byte $1F,$3F,$70,$00,$00,$FF,$FF,$E0
-    .byte $1F,$3F,$70,$00,$00,$FF,$FF,$E0
-; 2 top-right ($98): top curve, right vert, mid bar, empty
-    .byte $F8,$FC,$0E,$07,$07,$FE,$FE,$00
-    .byte $F8,$FC,$0E,$07,$07,$FE,$FE,$00
-
-; --- 6: tiles $99-$9A (new) + $86,$87 (reuse O-BL, O-BR) ---
-; 6 top-left ($99): top curve, left vert, mid bar, left vert
-;   Like O top-left but with mid-bar at rows 5-6
+; --- 6: tiles $94-$97 ---
+; 6 top-left ($94): top curve, left vert, mid bar, left vert
     .byte $1F,$3F,$70,$E0,$E0,$FF,$FF,$E0
     .byte $1F,$3F,$70,$E0,$E0,$FF,$FF,$E0
-; 6 top-right ($9A): top curve, NO right vert, mid bar, right vert starts
-;   Top curve closes but right side drops away, then mid-bar reconnects
-    .byte $F8,$FC,$0E,$00,$00,$FE,$FE,$07
-    .byte $F8,$FC,$0E,$00,$00,$FE,$FE,$07
+; 6 top-right ($95): top curve closes, open right, mid bar curves into right vert
+    .byte $F8,$FC,$0E,$00,$00,$F8,$FC,$0E
+    .byte $F8,$FC,$0E,$00,$00,$F8,$FC,$0E
+; 6 bottom-left ($96): left vert, bottom curve
+    .byte $E0,$E0,$E0,$E0,$70,$3F,$1F,$00
+    .byte $E0,$E0,$E0,$E0,$70,$3F,$1F,$00
+; 6 bottom-right ($97): right vert, bottom curve
+    .byte $07,$07,$07,$07,$0E,$FC,$F8,$00
+    .byte $07,$07,$07,$07,$0E,$FC,$F8,$00
+
+; --- 5: tiles $98-$9B ---
+; 5 top-left ($98): top bar, left vert, mid bar
+    .byte $FF,$FF,$E0,$E0,$E0,$FF,$FF,$00
+    .byte $FF,$FF,$E0,$E0,$E0,$FF,$FF,$00
+; 5 top-right ($99): top bar, empty, mid bar curves into right vert
+    .byte $FE,$FE,$00,$00,$00,$F8,$FC,$0E
+    .byte $FE,$FE,$00,$00,$00,$F8,$FC,$0E
+; 5 bottom-left ($9A): empty, bottom curve
+    .byte $00,$00,$00,$00,$70,$3F,$1F,$00
+    .byte $00,$00,$00,$00,$70,$3F,$1F,$00
+; 5 bottom-right ($9B): right vert, bottom curve
+    .byte $07,$07,$07,$07,$0E,$FC,$F8,$00
+    .byte $07,$07,$07,$07,$0E,$FC,$F8,$00
+
+; --- 0: tiles $9C-$9F ---
+; 0 top-left ($9C): top curve, left vert
+    .byte $1F,$3F,$70,$E0,$E0,$E0,$E0,$E0
+    .byte $1F,$3F,$70,$E0,$E0,$E0,$E0,$E0
+; 0 top-right ($9D): top curve, right vert
+    .byte $F8,$FC,$0E,$07,$07,$07,$07,$07
+    .byte $F8,$FC,$0E,$07,$07,$07,$07,$07
+; 0 bottom-left ($9E): left vert, bottom curve
+    .byte $E0,$E0,$E0,$E0,$70,$3F,$1F,$00
+    .byte $E0,$E0,$E0,$E0,$70,$3F,$1F,$00
+; 0 bottom-right ($9F): right vert, bottom curve
+    .byte $07,$07,$07,$07,$0E,$FC,$F8,$00
+    .byte $07,$07,$07,$07,$0E,$FC,$F8,$00
+
+; --- 2: tiles $A0-$A3 ---
+; 2 top-left ($A0): top curve, open left, bar sweeps in, left vert
+    .byte $1F,$3F,$70,$00,$00,$00,$3F,$FF
+    .byte $1F,$3F,$70,$00,$00,$00,$3F,$FF
+; 2 top-right ($A1): top curve, right vert, widens into bar
+    .byte $F8,$FC,$0E,$07,$07,$1F,$FE,$FC
+    .byte $F8,$FC,$0E,$07,$07,$1F,$FE,$FC
+; 2 bottom-left ($A2): left vert, slight widen into bottom bar
+    .byte $E0,$E0,$E0,$E0,$F0,$FF,$FF,$00
+    .byte $E0,$E0,$E0,$E0,$F0,$FF,$FF,$00
+; 2 bottom-right ($A3): bottom bar only
+    .byte $00,$00,$00,$00,$00,$FE,$FE,$00
+    .byte $00,$00,$00,$00,$00,$FE,$FE,$00
 
 ; ===========================================
-; Padding $9B-$FF (101 blank tiles)
+; Padding $A4-$FF (92 blank tiles)
 ; ===========================================
-.repeat 101
+.repeat 92
     .byte $00,$00,$00,$00,$00,$00,$00,$00
     .byte $00,$00,$00,$00,$00,$00,$00,$00
 .endrepeat

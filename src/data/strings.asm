@@ -69,6 +69,88 @@ str_weak:
 str_starving:
     .byte "You are starving!", $00
 
+; --- Item pickup messages ---
+str_picked_up:
+    .byte "You picked up an item.", $00
+
+str_pickup_weapon:
+    .byte "You found a weapon!", $00
+
+str_pickup_armor:
+    .byte "You found some armor!", $00
+
+str_pickup_potion:
+    .byte "You found a potion!", $00
+
+str_pickup_wand:
+    .byte "You found a wand!", $00
+
+str_inv_full:
+    .byte "Inventory is full!", $00
+
+; --- Inventory display strings ---
+str_inv_header:
+    .byte "-- Inventory --", $00
+
+str_inv_empty:
+    .byte "(empty)", $00
+
+; --- Item use messages ---
+str_equip_weapon:
+    .byte "You wield the weapon.", $00
+
+str_equip_armor:
+    .byte "You put on the armor.", $00
+
+str_pot_heal_msg:
+    .byte "You feel better!", $00
+
+str_pot_str_msg:
+    .byte "You feel stronger!", $00
+
+str_pot_poison_msg:
+    .byte "You feel weaker!", $00
+
+str_pot_strange:
+    .byte "You feel strange.", $00
+
+str_wand_zap:
+    .byte "The wand crackles!", $00
+
+str_wand_empty:
+    .byte "The wand is empty.", $00
+
+str_wand_teleport:
+    .byte "It vanishes!", $00
+
+str_wand_slow:
+    .byte "It slows down!", $00
+
+str_wand_fire:
+    .byte "A fireball hits!", $00
+
+str_wand_lightning:
+    .byte "Lightning strikes!", $00
+
+str_wand_no_target:
+    .byte "Nothing to target.", $00
+
+; --- Status effect messages ---
+str_confused:
+    .byte "You feel confused!", $00
+
+str_unconfused:
+    .byte "You feel less confused.", $00
+
+str_blinded:
+    .byte "You can't see!", $00
+
+str_unblinded:
+    .byte "You can see again!", $00
+
+str_item_dropped:
+    .byte "You drop the item.", $00
+
 ; --- Pause screen strings ---
 str_pause:
     .byte "- PAUSED -", $00
@@ -95,10 +177,13 @@ str_pause_floor:
     .byte "Floor:", $00
 
 str_pause_weapon:
-    .byte "Weapon: +1 Mace", $00
+    .byte "Weapon:", $00
 
 str_pause_armor:
-    .byte "Armor:  Ring Mail", $00
+    .byte "Armor:", $00
+
+str_none:
+    .byte "None", $00
 
 str_pause_resume:
     .byte "Press START to resume", $00
@@ -141,54 +226,52 @@ mon_name_hi:
     .byte >str_mon_bat, >str_mon_emu, >str_mon_hobgoblin, >str_mon_snake, >str_mon_zombie
 
 ; ============================================================
-; Block-letter title font (Donkey Kong style)
-;
-; Instead of hand-drawing each letter from many bespoke tiles,
-; the title is now "tiled" from a SINGLE existing in-game tile
-; (the dungeon wall block, CHR_WALL) repeated on a grid — exactly
-; how the Donkey Kong title screen builds its giant letters from
-; one repeated block. draw_block_word reads these bitmaps and
-; stamps the wall tile wherever a bit is set.
-;
-; Each glyph is 4 cells wide x 5 cells tall. Each row is stored
-; as one byte; only the low 4 bits are used (bit3 = leftmost
-; column ... bit0 = rightmost). A set bit = place the block tile.
+; Title screen BG tile rows — "ROGUE 6502" (28 tiles wide)
+; Centered: start at col 2, (32-28)/2 = 2
+; Each digit has 4 dedicated tiles (no letter reuse):
+;   6 = $94,$95,$96,$97
+;   5 = $98,$99,$9A,$9B
+;   0 = $9C,$9D,$9E,$9F
+;   2 = $A0,$A1,$A2,$A3
 ; ============================================================
-BLOCK_GLYPH_H = 5               ; rows per glyph
+TITLE_ROW_LEN = 28
 
-; Glyph indices (offsets into block_font, in units of glyphs)
-GLYPH_R = 0
-GLYPH_O = 1
-GLYPH_G = 2
-GLYPH_U = 3
-GLYPH_E = 4
-GLYPH_6 = 5
-GLYPH_5 = 6
-GLYPH_0 = 7
-GLYPH_2 = 8
+title_top_row:
+    ;     R           O           G           U           E              6           5           0           2
+    .byte $80,$81,$20,$84,$85,$20,$88,$89,$20,$8C,$8D,$20,$90,$91,$20,$20,$20,$94,$95,$20,$98,$99,$20,$9C,$9D,$20,$A0,$A1
 
-block_font:
-    ; R
-    .byte %1110, %1001, %1110, %1010, %1001
-    ; O
-    .byte %0110, %1001, %1001, %1001, %0110
-    ; G
-    .byte %0111, %1000, %1011, %1001, %0111
-    ; U
-    .byte %1001, %1001, %1001, %1001, %0110
-    ; E
-    .byte %1111, %1000, %1110, %1000, %1111
-    ; 6
-    .byte %0111, %1000, %1110, %1001, %0110
-    ; 5
-    .byte %1111, %1000, %1110, %0001, %1110
-    ; 0
-    .byte %0110, %1001, %1011, %1101, %0110
-    ; 2
-    .byte %1110, %0001, %0110, %1000, %1111
+title_bot_row:
+    .byte $82,$83,$20,$86,$87,$20,$8A,$8B,$20,$8E,$8F,$20,$92,$93,$20,$20,$20,$96,$97,$20,$9A,$9B,$20,$9E,$9F,$20,$A2,$A3
 
-; Word = list of glyph indices, terminated by $FF
-word_rogue:
-    .byte GLYPH_R, GLYPH_O, GLYPH_G, GLYPH_U, GLYPH_E, $FF
-word_6502:
-    .byte GLYPH_6, GLYPH_5, GLYPH_0, GLYPH_2, $FF
+; ============================================================
+; Title screen OAM data — "ROGUE" in large sprites
+; 20 entries: Y-1, tile, attributes, X
+; Centered: total width = 5*16 + 4*8 = 112, x_start = (256-112)/2 = 72
+; Y position: y=80 (upper third)
+; ============================================================
+title_oam_data:
+    ; R (x=72): tiles $01-$04
+    .byte  79, $01, $00,  72    ; R top-left
+    .byte  79, $02, $00,  80    ; R top-right
+    .byte  87, $03, $00,  72    ; R bottom-left
+    .byte  87, $04, $00,  80    ; R bottom-right
+    ; O (x=96): tiles $05-$08
+    .byte  79, $05, $00,  96    ; O top-left
+    .byte  79, $06, $00, 104    ; O top-right
+    .byte  87, $07, $00,  96    ; O bottom-left
+    .byte  87, $08, $00, 104    ; O bottom-right
+    ; G (x=120): tiles $09-$0C
+    .byte  79, $09, $00, 120    ; G top-left
+    .byte  79, $0A, $00, 128    ; G top-right
+    .byte  87, $0B, $00, 120    ; G bottom-left
+    .byte  87, $0C, $00, 128    ; G bottom-right
+    ; U (x=144): tiles $0D-$10
+    .byte  79, $0D, $00, 144    ; U top-left
+    .byte  79, $0E, $00, 152    ; U top-right
+    .byte  87, $0F, $00, 144    ; U bottom-left
+    .byte  87, $10, $00, 152    ; U bottom-right
+    ; E (x=168): tiles $11-$14
+    .byte  79, $11, $00, 168    ; E top-left
+    .byte  79, $12, $00, 176    ; E top-right
+    .byte  87, $13, $00, 168    ; E bottom-left
+    .byte  87, $14, $00, 176    ; E bottom-right

@@ -1,16 +1,14 @@
 ; ============================================================
 ; HUD — Compact status bar on one row
-; Str, Def, XP details shown on pause screen
+; Row 0: HP, Lv, Fl, Gold
+; Row 1: (unused — Str/Def shown on pause screen only)
 ; ============================================================
 .segment "CODE"
 
 ; ------------------------------------------------------------
 ; hud_draw
 ; Draw the full HUD (called once on screen init).
-; Row 0: HP:12/12 Lv:1 Fl:1 Gold:0
-; Row 1: (empty)
-; Layout: 0123456789012345678901234567890
-;         HP: 12/ 12 Lv:1 Fl:1 Gold:  0
+; Row 0: HP:12/12 Lv:1 Fl:1 Gold:  0
 ; ------------------------------------------------------------
 .proc hud_draw
     ; "HP:" at pos 0
@@ -157,5 +155,54 @@
     lda player_gold
     jsr draw_number_3d
 
+    rts
+.endproc
+
+; ------------------------------------------------------------
+; calc_effective_str
+; Compute effective attack: weapon_power + enchant + player_str
+; Output: temp_4 = effective value
+; ------------------------------------------------------------
+.proc calc_effective_str
+    lda player_str
+    sta temp_4
+    ldx equipped_weapon
+    cpx #$FF
+    beq @bare_hands
+    ldy inv_sub, x
+    lda weapon_power, y
+    clc
+    adc inv_mod, x              ; + enchantment
+    clc
+    adc temp_4                  ; + str bonus
+    sta temp_4
+    rts
+@bare_hands:
+    lda #DEFAULT_WEAPON_POWER
+    clc
+    adc temp_4
+    sta temp_4
+    rts
+.endproc
+
+; ------------------------------------------------------------
+; calc_effective_def
+; Compute effective defense: armor_defense + enchant + player_def
+; Output: temp_4 = effective value
+; ------------------------------------------------------------
+.proc calc_effective_def
+    lda player_def
+    sta temp_4
+    ldx equipped_armor
+    cpx #$FF
+    beq @done
+    ldy inv_sub, x
+    lda armor_defense, y
+    clc
+    adc inv_mod, x              ; + enchantment
+    clc
+    adc temp_4                  ; + def bonus
+    sta temp_4
+@done:
     rts
 .endproc

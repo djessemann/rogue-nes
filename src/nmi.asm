@@ -93,6 +93,9 @@
     sta nmi_ready
 
 @skip_ppu:
+    ; Update SFX engine every frame (APU writes don't conflict with PPU)
+    jsr sfx_update
+
     ; Restore registers
     pla
     tay

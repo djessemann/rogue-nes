@@ -1,54 +1,104 @@
 ; ============================================================
 ; Combat System — Attack resolution, damage, XP
-; Classic Rogue d20 system with named monster messages
+; JRPG-style: flat ATK/DEF with accuracy check
 ; ============================================================
 .segment "CODE"
 
 ; ------------------------------------------------------------
 ; player_attack_monster
 ; Player attacks monster at index X.
-; Uses d20 system from game mechanics.
+; Hit check: rng(100) < (BASE_HIT_CHANCE + player_agi - mon_evasion)
+; Damage: weapon_power + enchant + player_str - mon_def +/- 1 (min 1)
 ; Input: X = monster index (also in temp_mon_idx)
 ; ------------------------------------------------------------
 .proc player_attack_monster
     ldx temp_mon_idx
 
-    ; Roll d20
-    lda #D20_SIDES
-    jsr rng_range               ; 0-19
+    ; --- Accuracy check ---
+    ; Calculate hit threshold: BASE_HIT_CHANCE + player_agi - mon_evasion
+    lda #BASE_HIT_CHANCE
     clc
-    adc #$01                    ; 1-20
+    adc player_agi
+    ; Clamp to 255 max before subtraction
+    bcc @agi_ok
+    lda #$FF
+@agi_ok:
+    sta temp_2                  ; Save threshold so far
+    ldy mon_type, x
+    lda temp_2
+    sec
+    sbc mon_evasion, y
+    bcs @eva_ok
+    lda #$05                    ; Minimum 5% hit chance
+@eva_ok:
+    sta temp_2                  ; Final hit threshold
 
-    ; Add player level
+    ; Roll 0-99
+    lda #100
+    jsr rng_range
+    cmp temp_2                  ; Hit if roll < threshold
+    bcc @hit
+    jmp @miss
+
+@hit:
+    ; --- Calculate damage ---
+    ; Get weapon power (or default bare-hands)
+    lda equipped_weapon
+    cmp #$FF
+    beq @default_weapon
+    tax
+    lda inv_sub, x
+    tay
+    lda weapon_power, y         ; Base weapon power
     clc
-    adc player_level
-
-    ; Add weapon bonus (start with +1 mace)
+    adc inv_mod, x              ; + enchantment modifier
+    jmp @add_str
+@default_weapon:
+    lda #DEFAULT_WEAPON_POWER
+@add_str:
+    ; Add player strength bonus
     clc
-    adc #$01                    ; TODO: read from equipped weapon
+    adc player_str
+    sta temp_1                  ; Total attack power
 
-    ; Compare against monster armor
+    ; Subtract monster defense
     ldx temp_mon_idx
     ldy mon_type, x
-    cmp mon_armor, y
-    bcs @hit                    ; Roll >= armor = hit
-    jmp @miss
-@hit:
+    lda temp_1
+    sec
+    sbc mon_def, y
+    bcs @def_ok
+    lda #$00                    ; Underflow
+@def_ok:
+    sta temp_1                  ; Base damage (before variance)
 
-    ; --- HIT ---
-    ; Calculate damage: 1d8 + 1 (enchanted +1 mace, classic Rogue)
-    lda #$08
-    jsr rng_range               ; 0-7
-    clc
-    adc #$01                    ; 1-8
+    ; Add variance: -1, +0, or +1
+    lda #$03
+    jsr rng_range               ; 0, 1, or 2
+    cmp #$00
+    beq @var_minus               ; 0 = subtract 1
+    cmp #$01
+    beq @var_zero                ; 1 = no change
+    ; 2 = add 1
+    inc temp_1
+    jmp @var_done
+@var_minus:
+    lda temp_1
+    beq @var_done                ; Don't go below 0
+    dec temp_1
+    jmp @var_done
+@var_zero:
+@var_done:
 
-    ; Add mace enchantment bonus (+1,+1 in classic Rogue)
-    clc
-    adc #$01                    ; +1 damage bonus
+    ; Enforce minimum 1 damage on a hit
+    lda temp_1
+    bne @apply_damage
+    lda #$01
+    sta temp_1
 
-    ; Apply damage
+@apply_damage:
+    ; Apply damage to monster
     ldx temp_mon_idx
-    sta temp_1                  ; Damage amount
     lda mon_hp, x
     sec
     sbc temp_1
@@ -70,6 +120,8 @@
     bne @hit_only
 
     ; --- Monster killed ---
+    lda #SFX_MONSTER_DEAD
+    jsr sfx_play
     lda #$01
     sta flash_is_kill           ; Flash will restore floor when done
 
@@ -102,6 +154,8 @@
     jmp @done
 
 @hit_only:
+    lda #SFX_PLAYER_HIT
+    jsr sfx_play
     lda #$00
     sta flash_is_kill           ; Flash will restore monster when done
 
@@ -142,36 +196,91 @@
 ; ------------------------------------------------------------
 ; monster_attack_player
 ; Monster at temp_mon_idx attacks the player.
+; Hit check: rng(100) < (90 - player_agi). Damage: mon_atk - player_def +/- 1
 ; ------------------------------------------------------------
 .proc monster_attack_player
     ldx temp_mon_idx
 
-    ; Roll d20
-    lda #D20_SIDES
-    jsr rng_range
-    clc
-    adc #$01                    ; 1-20
+    ; --- Accuracy check: 90 - player_agility ---
+    lda #90
+    sec
+    sbc player_agi
+    bcs @agi_ok
+    lda #$05                    ; Minimum 5% hit chance
+@agi_ok:
+    sta temp_2                  ; Hit threshold
 
-    ; Add monster level
-    ldy mon_type, x
-    clc
-    adc mon_level, y
+    lda #100
+    jsr rng_range               ; 0-99
+    cmp temp_2
+    bcc @mon_hit                ; < threshold = hit
+    jmp @mon_miss
 
-    ; Compare against player defense
-    cmp player_def
-    bcc @miss
-
-    ; --- HIT ---
-    ; Look up monster damage
+@mon_hit:
     ldx temp_mon_idx
-    ldy mon_type, x
-    lda mon_damage, y           ; Max damage for this type
-    jsr rng_range               ; 0 to max-1
-    clc
-    adc #$01                    ; 1 to max
 
-    ; Apply damage to player
+    ; --- Calculate damage ---
+    ; Get monster attack power
+    ldy mon_type, x
+    lda mon_atk, y
+    sta temp_1                  ; Monster ATK
+
+    ; Calculate player effective defense: armor + enchant + def bonus
+    lda player_def              ; Base defense bonus from levels
+    sta temp_2
+    lda equipped_armor
+    cmp #$FF
+    beq @calc_dmg               ; No armor, just use player_def
+    tax
+    lda inv_sub, x
+    tay
+    lda armor_defense, y        ; Armor base defense
+    clc
+    adc inv_mod, x              ; + enchantment
+    clc
+    adc temp_2                  ; + player def bonus
+    sta temp_2
+
+@calc_dmg:
+    ; Damage = mon_atk - player_defense
+    lda temp_1
+    sec
+    sbc temp_2
+    bcs @def_ok
+    lda #$00
+@def_ok:
     sta temp_1
+
+    ; Add variance: -1, +0, or +1
+    lda #$03
+    jsr rng_range               ; 0, 1, or 2
+    cmp #$00
+    beq @var_minus               ; 0 = subtract 1
+    cmp #$01
+    beq @var_zero                ; 1 = no change
+    ; 2 = add 1
+    inc temp_1
+    jmp @var_done
+@var_minus:
+    lda temp_1
+    beq @var_done                ; Don't go below 0
+    dec temp_1
+    jmp @var_done
+@var_zero:
+@var_done:
+
+    ; Enforce minimum 1 damage
+    lda temp_1
+    bne @apply_hit
+    lda #$01
+    sta temp_1
+
+@apply_hit:
+    ; Monster hit sound
+    lda #SFX_MONSTER_HIT
+    jsr sfx_play
+    ; Apply damage to player
+    ldx temp_mon_idx
     lda player_hp
     sec
     sbc temp_1
@@ -211,7 +320,7 @@
 
     rts
 
-@miss:
+@mon_miss:
     ; Build message: "The <name> misses you" (normal priority)
     lda #$01
     sta msg_new_priority
@@ -256,13 +365,10 @@
     ; Level up!
     inc player_level
 
-    ; Increase max HP by 1-10 (1d10, matches original Rogue)
-    lda #$0A
-    jsr rng_range               ; 0-9
+    ; Increase max HP by 5 (flat, predictable)
+    lda player_max_hp
     clc
-    adc #$01                    ; 1-10
-    clc
-    adc player_max_hp
+    adc #$05
     bcc @hp_ok
     lda #$FF
 @hp_ok:
@@ -272,14 +378,14 @@
     lda player_max_hp
     sta player_hp
 
-    ; Increase strength by 1 every level (like finding strength potions)
+    ; Increase strength bonus by 1 every level
     lda player_str
     cmp #$FF
     bcs @str_ok
     inc player_str
 @str_ok:
 
-    ; Increase defense by 1 every other level (like finding better armor)
+    ; Increase defense bonus by 1 every even level
     lda player_level
     and #$01                    ; Check if new level is even
     bne @def_ok                 ; Odd level — skip defense bump
@@ -288,6 +394,19 @@
     bcs @def_ok
     inc player_def
 @def_ok:
+
+    ; Increase agility by 2 every odd level
+    lda player_level
+    and #$01                    ; Check if new level is odd
+    beq @agi_ok                 ; Even level — skip agility bump
+    lda player_agi
+    clc
+    adc #$02
+    bcc @agi_clamp
+    lda #$FF
+@agi_clamp:
+    sta player_agi
+@agi_ok:
 
     ; Show message (high priority)
     lda #$02

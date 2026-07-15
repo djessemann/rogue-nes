@@ -99,6 +99,9 @@
     jmp @clear_wram
 @wram_done:
 
+    ; Initialize audio
+    jsr sfx_init
+
     ; PPU is ready — jump to main game initialization
     jmp main
 .endproc

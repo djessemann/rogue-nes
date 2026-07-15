@@ -57,6 +57,16 @@
 .proc monster_act
     ldx temp_mon_idx
 
+    ; Check if slowed — skip turn 50% of the time
+    lda mon_flags, x
+    and #MFLAG_SLOW
+    beq @not_slow
+    jsr rng_next
+    and #$01
+    bne @not_slow               ; 50% chance to continue
+    jmp @skip_turn              ; Other 50% do nothing
+@not_slow:
+
     ; Check if adjacent to player (can attack)
     lda mon_x, x
     sec
@@ -228,6 +238,7 @@
 @skip_draw:
 
 @cant_move:
+@skip_turn:
     rts
 .endproc
 

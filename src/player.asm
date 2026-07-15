@@ -56,6 +56,19 @@
     jmp @check_buttons
 @has_direction:
 
+    ; Confusion: replace direction with random
+    lda player_status
+    and #STATUS_CONFUSED
+    beq @not_confused
+    lda #$08                    ; 8 directions
+    jsr rng_range
+    tax
+    lda dir_dx, x
+    sta move_dx
+    lda dir_dy, x
+    sta move_dy
+@not_confused:
+
     ; --- Attempt movement ---
     ; Calculate target position
     lda player_x
@@ -71,7 +84,9 @@
     ; Bounds check against full map (64x48)
     lda target_x
     cmp #MAP_W
-    bcs @blocked                ; >= 64 (or wrapped negative)
+    bcc @x_ok
+    jmp @blocked                ; >= 64 (or wrapped negative)
+@x_ok:
     lda target_y
     cmp #MAP_H
     bcs @blocked                ; >= 48 (or wrapped negative)
@@ -116,6 +131,10 @@
     sta player_x
     lda target_y
     sta player_y
+
+    ; Footstep sound
+    lda #SFX_FOOTSTEP
+    jsr sfx_play
 
     ; Check for screen flip (updates camera if player left viewport)
     jsr check_screen_flip
@@ -317,9 +336,13 @@
     jsr fog_downgrade_room
 @no_downgrade:
 
-    ; Reveal new room
+    ; Reveal new room (skip if blind)
+    lda player_status
+    and #STATUS_BLIND
+    bne @skip_room_reveal
     ldx player_current_room
     jsr fog_reveal_room
+@skip_room_reveal:
 
     ; Update prev room tracker
     lda player_current_room
@@ -340,8 +363,12 @@
     sta temp_2                  ; Old Y
     jsr fog_clear_visible
 
-    ; Reveal around current position
+    ; Reveal around current position (skip if blind)
+    lda player_status
+    and #STATUS_BLIND
+    bne @skip_corridor_reveal
     jsr fog_reveal_around
+@skip_corridor_reveal:
 
     ; If was in a room, downgrade it and trigger redraw
     ldx player_prev_room
@@ -405,14 +432,20 @@
     ldx #$00
 @loop:
     cpx floor_item_count
-    beq @done
+    bne @not_done
+    jmp @done
+@not_done:
 
     lda fi_x, x
     cmp player_x
-    bne @next
+    beq @x_match
+    jmp @next
+@x_match:
     lda fi_y, x
     cmp player_y
-    bne @next
+    beq @y_match
+    jmp @next
+@y_match:
 
     ; Found item — handle by type
     lda fi_type, x
@@ -420,7 +453,8 @@
     beq @pickup_gold
     cmp #ITEM_FOOD
     beq @pickup_food
-    jmp @next                   ; Unknown type, skip
+    ; All other items go to inventory
+    jmp @pickup_inventory
 
 @pickup_gold:
     ; Add gold to player total
@@ -471,7 +505,84 @@
 
     jmp @remove_item
 
+@pickup_inventory:
+    ; Check if inventory is full
+    lda inventory_count
+    cmp #MAX_INVENTORY
+    bne @inv_not_full
+    ; Inventory full — show message and skip
+    lda #<str_inv_full
+    sta ptr_lo
+    lda #>str_inv_full
+    sta ptr_hi
+    jsr msg_show
+    jmp @next
+
+@inv_not_full:
+    ; Copy floor item to inventory slot
+    stx temp_mon_idx            ; Save floor item index
+    ldy inventory_count
+    lda fi_type, x
+    sta inv_cat, y
+    lda fi_sub, x
+    sta inv_sub, y
+    lda fi_mod, x
+    sta inv_mod, y
+    inc inventory_count
+
+    ; Show pickup message based on item category
+    lda fi_type, x
+    cmp #ITEM_WEAPON
+    beq @msg_weapon
+    cmp #ITEM_ARMOR
+    beq @msg_armor
+    cmp #ITEM_POTION
+    beq @msg_potion
+    cmp #ITEM_WAND
+    beq @msg_wand
+    ; Fallback
+    lda #<str_picked_up
+    sta ptr_lo
+    lda #>str_picked_up
+    sta ptr_hi
+    jmp @msg_done
+
+@msg_weapon:
+    lda #<str_pickup_weapon
+    sta ptr_lo
+    lda #>str_pickup_weapon
+    sta ptr_hi
+    jmp @msg_done
+
+@msg_armor:
+    lda #<str_pickup_armor
+    sta ptr_lo
+    lda #>str_pickup_armor
+    sta ptr_hi
+    jmp @msg_done
+
+@msg_potion:
+    lda #<str_pickup_potion
+    sta ptr_lo
+    lda #>str_pickup_potion
+    sta ptr_hi
+    jmp @msg_done
+
+@msg_wand:
+    lda #<str_pickup_wand
+    sta ptr_lo
+    lda #>str_pickup_wand
+    sta ptr_hi
+
+@msg_done:
+    jsr msg_show
+    ldx temp_mon_idx            ; Restore floor item index
+    jmp @remove_item
+
 @remove_item:
+    ; Item pickup sound
+    lda #SFX_ITEM_PICKUP
+    jsr sfx_play
     ; Remove item by shifting array
     jsr remove_floor_item       ; X = index to remove
     rts
@@ -501,6 +612,8 @@
     sta fi_y - 1, x
     lda fi_type, x
     sta fi_type - 1, x
+    lda fi_sub, x
+    sta fi_sub - 1, x
     lda fi_mod, x
     sta fi_mod - 1, x
 

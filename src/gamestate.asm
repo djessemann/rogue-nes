@@ -73,36 +73,33 @@
     sta ptr_hi
     jsr load_palettes
 
-    ; --- Draw the title in giant block letters ---
-    ; Each letter is "tiled" from a single existing in-game tile
-    ; (the dungeon wall block), Donkey-Kong style, rather than from
-    ; many bespoke letter-shaped tiles.
-    ;
-    ; "ROGUE" — 5 glyphs wide, centered, rows 4-8
-    lda #<word_rogue
-    sta ptr_lo
-    lda #>word_rogue
-    sta ptr_hi
-    lda #4                      ; start column (centered)
-    sta temp_1
-    lda #4                      ; start row
-    sta temp_2
-    lda #CHR_WALL               ; <- the single tile we build letters from
-    sta temp_4
-    jsr draw_block_word
+    ; --- Draw "ROGUE 6502" as background tiles (2x2 per letter) ---
+    ; Row 10 (top halves): PPU $2142 = row 10, col 2
+    lda $2002                   ; Reset PPU latch
+    lda #$21
+    sta $2006
+    lda #$42
+    sta $2006
+    ldx #0
+@title_top:
+    lda title_top_row, x
+    sta $2007
+    inx
+    cpx #TITLE_ROW_LEN
+    bne @title_top
 
-    ; "6502" — 4 glyphs wide, centered, rows 11-15
-    lda #<word_6502
-    sta ptr_lo
-    lda #>word_6502
-    sta ptr_hi
-    lda #6                      ; start column (centered)
-    sta temp_1
-    lda #11                     ; start row
-    sta temp_2
-    lda #CHR_WALL
-    sta temp_4
-    jsr draw_block_word
+    ; Row 11 (bottom halves): PPU $2162 = row 11, col 2
+    lda #$21
+    sta $2006
+    lda #$62
+    sta $2006
+    ldx #0
+@title_bot:
+    lda title_bot_row, x
+    sta $2007
+    inx
+    cpx #TITLE_ROW_LEN
+    bne @title_bot
 
     ; --- Draw "PRESS START" as background text ---
     lda #<str_press_start
@@ -111,9 +108,9 @@
     sta ptr_hi
     lda #10                     ; X position (centered)
     sta temp_1
-    lda #20                     ; Y position (below the title)
+    lda #16                     ; Y position (below divider)
     sta temp_2
-    jsr draw_text
+    jsr ppu_draw_text
 
     ; Enable rendering (BG only, no sprites needed)
     lda #%10000000              ; NMI on, BG pat 0
@@ -135,10 +132,10 @@
     lda frame_counter
     and #$20                    ; Toggle every 32 frames
     beq @press_visible
-    ; Hide: clear the PRESS START row via VRAM buffer
+    ; Hide: clear row 16 via VRAM buffer
     lda #$00
     sta temp_1
-    lda #20
+    lda #16
     sta temp_2
     jsr clear_msg_row
     jmp @check_start
@@ -150,7 +147,7 @@
     sta ptr_hi
     lda #10
     sta temp_1
-    lda #20
+    lda #16
     sta temp_2
     jsr draw_text
 
@@ -322,6 +319,7 @@
     sta msg_turn_priority       ; Reset message priority for new turn
     jsr monsters_update
     jsr hunger_update
+    jsr status_update
 
     ; Check for player death
     lda player_hp
@@ -341,6 +339,8 @@
     rts
 
 @player_died:
+    lda #SFX_GAME_OVER
+    jsr sfx_play
     lda #STATE_DEATH
     sta game_state
     lda #$00
@@ -407,169 +407,240 @@
 
     ; --- Draw pause screen using direct PPU writes ---
 
-    ; "- PAUSED -" centered on row 3
+    ; "- PAUSED -" centered on row 2
     lda #<str_pause
     sta ptr_lo
     lda #>str_pause
     sta ptr_hi
     lda #11
     sta temp_1
-    lda #3
+    lda #2
     sta temp_2
     jsr ppu_draw_text
 
-    ; --- Stats block starting at row 7 ---
+    ; --- Compact stats: rows 4-6 ---
 
-    ; "Hit Points:  12/12"
-    lda #<str_pause_hp
+    ; Row 4: "HP: 12/12   Str: 16"
+    lda #<str_hp
     sta ptr_lo
-    lda #>str_pause_hp
+    lda #>str_hp
     sta ptr_hi
-    lda #4
+    lda #2
     sta temp_1
-    lda #7
+    lda #4
     sta temp_2
     jsr ppu_draw_text
-    lda #16
+    lda #5
     sta temp_1
-    lda #7
+    lda #4
     sta temp_2
     lda player_hp
     jsr ppu_draw_number
-    ; "/" — PPU address auto-incremented to pos 19, just write directly
     lda #'/'
     sta $2007
-    ; Max HP — PPU address now at 20, write 3 chars directly
     lda player_max_hp
     jsr ppu_draw_number_continue
 
-    ; "Strength:  16"
-    lda #<str_pause_str
+    lda #<str_str
     sta ptr_lo
-    lda #>str_pause_str
+    lda #>str_str
     sta ptr_hi
-    lda #4
-    sta temp_1
-    lda #9
-    sta temp_2
-    jsr ppu_draw_text
     lda #16
     sta temp_1
-    lda #9
+    lda #4
     sta temp_2
+    jsr ppu_draw_text
+    ; Compute effective Atk: weapon_power + enchant + str bonus
     lda player_str
+    sta temp_4                  ; Accumulator for effective atk
+    ldx equipped_weapon
+    cpx #$FF
+    beq @no_wpn_str
+    ldy inv_sub, x
+    lda weapon_power, y
+    clc
+    adc inv_mod, x              ; + enchantment
+    clc
+    adc temp_4
+    sta temp_4
+    jmp @wpn_str_done
+@no_wpn_str:
+    lda #DEFAULT_WEAPON_POWER
+    clc
+    adc temp_4
+    sta temp_4
+@wpn_str_done:
+    lda #20
+    sta temp_1
+    lda #4
+    sta temp_2
+    lda temp_4
     jsr ppu_draw_number
 
-    ; "Defense:  15"
-    lda #<str_pause_def
+    ; Row 5: "Def: ##     Lv: #"
+    lda #<str_def
     sta ptr_lo
-    lda #>str_pause_def
+    lda #>str_def
     sta ptr_hi
-    lda #4
+    lda #2
     sta temp_1
-    lda #11
+    lda #5
     sta temp_2
     jsr ppu_draw_text
-    lda #16
-    sta temp_1
-    lda #11
-    sta temp_2
+    ; Compute effective Def: armor_defense + enchant + def bonus
     lda player_def
+    sta temp_4                  ; Base: def bonus from levels
+    ldx equipped_armor
+    cpx #$FF
+    beq @no_arm_def
+    ldy inv_sub, x
+    lda armor_defense, y
+    clc
+    adc inv_mod, x              ; + enchantment
+    clc
+    adc temp_4                  ; + def bonus
+    sta temp_4
+@no_arm_def:
+    lda #6
+    sta temp_1
+    lda #5
+    sta temp_2
+    lda temp_4
     jsr ppu_draw_number
 
-    ; "Level:  1"
-    lda #<str_pause_lvl
+    lda #<str_lv
     sta ptr_lo
-    lda #>str_pause_lvl
+    lda #>str_lv
     sta ptr_hi
-    lda #4
-    sta temp_1
-    lda #13
-    sta temp_2
-    jsr ppu_draw_text
     lda #16
     sta temp_1
-    lda #13
+    lda #5
+    sta temp_2
+    jsr ppu_draw_text
+    lda #19
+    sta temp_1
+    lda #5
     sta temp_2
     lda player_level
     jsr ppu_draw_number
 
-    ; "Experience:  0"
-    lda #<str_pause_xp
+    ; Row 6: "Gold: 0     Floor: 1"
+    lda #<str_gold
     sta ptr_lo
-    lda #>str_pause_xp
+    lda #>str_gold
     sta ptr_hi
-    lda #4
+    lda #2
     sta temp_1
-    lda #15
+    lda #6
     sta temp_2
     jsr ppu_draw_text
-    lda #16
+    lda #7
     sta temp_1
-    lda #15
-    sta temp_2
-    lda player_xp
-    jsr ppu_draw_number
-
-    ; "Gold:  0"
-    lda #<str_pause_gold
-    sta ptr_lo
-    lda #>str_pause_gold
-    sta ptr_hi
-    lda #4
-    sta temp_1
-    lda #17
-    sta temp_2
-    jsr ppu_draw_text
-    lda #16
-    sta temp_1
-    lda #17
+    lda #6
     sta temp_2
     lda player_gold
     jsr ppu_draw_number
 
-    ; "Floor:  1"
-    lda #<str_pause_floor
+    lda #<str_fl
     sta ptr_lo
-    lda #>str_pause_floor
+    lda #>str_fl
     sta ptr_hi
-    lda #4
-    sta temp_1
-    lda #19
-    sta temp_2
-    jsr ppu_draw_text
     lda #16
     sta temp_1
+    lda #6
+    sta temp_2
+    jsr ppu_draw_text
     lda #19
+    sta temp_1
+    lda #6
     sta temp_2
     lda dungeon_level
     clc
     adc #$01
     jsr ppu_draw_number
 
-    ; --- Equipment block at row 22 ---
-
-    ; "Weapon: +1 Mace"
+    ; --- Equipment: rows 8-9 ---
+    ; Weapon label
     lda #<str_pause_weapon
     sta ptr_lo
     lda #>str_pause_weapon
     sta ptr_hi
-    lda #4
+    lda #2
     sta temp_1
-    lda #22
+    lda #8
     sta temp_2
     jsr ppu_draw_text
 
-    ; "Armor:  Ring Mail"
+    ; Equipped weapon name
+    lda equipped_weapon
+    cmp #$FF
+    beq @no_weapon_equipped
+    tax
+    ldy inv_sub, x
+    lda weapon_name_lo, y
+    sta ptr_lo
+    lda weapon_name_hi, y
+    sta ptr_hi
+    jmp @draw_weapon_name
+@no_weapon_equipped:
+    lda #<str_none
+    sta ptr_lo
+    lda #>str_none
+    sta ptr_hi
+@draw_weapon_name:
+    lda #10
+    sta temp_1
+    lda #8
+    sta temp_2
+    jsr ppu_draw_text
+
+    ; Armor label
     lda #<str_pause_armor
     sta ptr_lo
     lda #>str_pause_armor
     sta ptr_hi
-    lda #4
+    lda #2
     sta temp_1
-    lda #23
+    lda #9
     sta temp_2
     jsr ppu_draw_text
+
+    ; Equipped armor name
+    lda equipped_armor
+    cmp #$FF
+    beq @no_armor_equipped
+    tax
+    ldy inv_sub, x
+    lda armor_name_lo, y
+    sta ptr_lo
+    lda armor_name_hi, y
+    sta ptr_hi
+    jmp @draw_armor_name
+@no_armor_equipped:
+    lda #<str_none
+    sta ptr_lo
+    lda #>str_none
+    sta ptr_hi
+@draw_armor_name:
+    lda #10
+    sta temp_1
+    lda #9
+    sta temp_2
+    jsr ppu_draw_text
+
+    ; --- Inventory header: row 11 ---
+    lda #<str_inv_header
+    sta ptr_lo
+    lda #>str_inv_header
+    sta ptr_hi
+    lda #2
+    sta temp_1
+    lda #11
+    sta temp_2
+    jsr ppu_draw_text
+
+    ; --- Inventory list: rows 12-21 (up to 10 items) ---
+    jsr pause_draw_inventory
 
     ; "Press START to resume" at row 27
     lda #<str_pause_resume
@@ -581,6 +652,51 @@
     lda #27
     sta temp_2
     jsr ppu_draw_text
+
+    ; Initialize inventory cursor
+    lda #$00
+    sta inv_cursor
+    sta inv_scroll
+
+    ; Draw cursor indicator if inventory not empty
+    lda inventory_count
+    beq @no_cursor
+    ; Draw ">" at row 12 (first inventory row), col 1
+    lda $2002
+    lda #$21                    ; Row 12 = $2000 + 12*32 = $2180
+    sta $2006
+    lda #$81                    ; col 1 = $81
+    sta $2006
+    lda #'>'
+    sta $2007
+@no_cursor:
+
+    ; Set attribute bytes so column 2-3 area uses palette 1 (dark gray)
+    ; for the equipped "E" indicator on inventory rows 12-21
+    lda $2002                   ; Reset PPU latch
+    ; Attribute row 3 (tile rows 12-15): $23D8
+    lda #$23
+    sta $2006
+    lda #$D8
+    sta $2006
+    lda #$44                    ; Top-right + bottom-right = palette 1
+    sta $2007
+    ; Attribute row 4 (tile rows 16-19): $23E0
+    lda $2002
+    lda #$23
+    sta $2006
+    lda #$E0
+    sta $2006
+    lda #$44
+    sta $2007
+    ; Attribute row 5 (tile rows 20-23): $23E8
+    lda $2002
+    lda #$23
+    sta $2006
+    lda #$E8
+    sta $2006
+    lda #$04                    ; Top-right only = palette 1
+    sta $2007
 
     ; Enable rendering
     lda #%10000000
@@ -598,9 +714,144 @@
     rts
 
 @update:
+    ; Check START to resume
     lda buttons_new
     and #BUTTON_START
-    beq @done
+    beq @no_start
+    jmp @resume
+@no_start:
+
+    ; Check inventory navigation (only if inventory not empty)
+    lda inventory_count
+    bne @has_inv
+    jmp @done
+@has_inv:
+
+    ; UP: move cursor up
+    lda buttons_new
+    and #BUTTON_UP
+    beq @check_down
+    lda inv_cursor
+    bne @can_go_up
+    jmp @done                   ; Already at top
+@can_go_up:
+    ; Erase old cursor
+    lda inv_cursor
+    clc
+    adc #12                     ; Row = cursor + 12
+    sta temp_2
+    lda #1
+    sta temp_1
+    lda #$20                    ; Space (erase)
+    jsr pause_write_char
+    dec inv_cursor
+    ; Draw new cursor
+    lda inv_cursor
+    clc
+    adc #12
+    sta temp_2
+    lda #1
+    sta temp_1
+    lda #'>'
+    jsr pause_write_char
+    jmp @done
+
+@check_down:
+    lda buttons_new
+    and #BUTTON_DOWN
+    beq @check_a
+    lda inv_cursor
+    clc
+    adc #$01
+    cmp inventory_count
+    bcc @not_bottom
+    jmp @done                   ; At bottom
+@not_bottom:
+    cmp #10
+    bcc @not_max
+    jmp @done                   ; Max visible
+@not_max:
+    ; Erase old cursor
+    lda inv_cursor
+    clc
+    adc #12
+    sta temp_2
+    lda #1
+    sta temp_1
+    lda #$20
+    jsr pause_write_char
+    inc inv_cursor
+    ; Draw new cursor
+    lda inv_cursor
+    clc
+    adc #12
+    sta temp_2
+    lda #1
+    sta temp_1
+    lda #'>'
+    jsr pause_write_char
+    jmp @done
+
+@check_a:
+    ; A: use/equip selected item
+    lda buttons_new
+    and #BUTTON_A
+    beq @check_b
+    ldx inv_cursor
+    jsr item_use
+    bcc @equipped               ; Not consumed (equipped) — redraw
+    ; Item consumed — remove from inventory
+    ldx inv_cursor
+    jsr item_remove
+    ; Adjust cursor if needed
+    lda inv_cursor
+    cmp inventory_count
+    bcc @cursor_ok
+    lda inventory_count
+    beq @cursor_zero
+    sec
+    sbc #$01
+@cursor_zero:
+    sta inv_cursor
+@cursor_ok:
+@equipped:
+    ; Redraw pause screen (after equip, consume, or drop)
+    lda #$00
+    sta state_initialized
+    jmp @done
+
+@check_b:
+    ; B: drop selected item
+    lda buttons_new
+    and #BUTTON_B
+    bne @do_drop
+    jmp @done
+@do_drop:
+    ldx inv_cursor
+    jsr item_remove
+    ; Show drop message
+    lda #<str_item_dropped
+    sta ptr_lo
+    lda #>str_item_dropped
+    sta ptr_hi
+    jsr msg_show
+    ; Adjust cursor
+    lda inv_cursor
+    cmp inventory_count
+    bcc @drop_ok
+    lda inventory_count
+    beq @drop_zero
+    sec
+    sbc #$01
+@drop_zero:
+    sta inv_cursor
+@drop_ok:
+    ; Redraw pause screen
+    lda #$00
+    sta state_initialized
+    jmp @done
+
+@resume:
     ; Return to gameplay — redraw existing dungeon (don't regenerate)
     lda #STATE_GAMEPLAY
     sta game_state
@@ -612,6 +863,29 @@
     sta $2001
     sta ppu_ctrl
     sta ppu_mask
+    ; Clear attribute table bytes set by pause screen inventory
+    lda $2002
+    lda #$23
+    sta $2006
+    lda #$D8
+    sta $2006
+    lda #$00
+    sta $2007
+    lda $2002
+    lda #$23
+    sta $2006
+    lda #$E0
+    sta $2006
+    lda #$00
+    sta $2007
+    lda $2002
+    lda #$23
+    sta $2006
+    lda #$E8
+    sta $2006
+    lda #$00
+    sta $2007
+
     ; Reload dungeon palette (pause screen used title palette)
     lda #<palette_dungeon
     sta ptr_lo
@@ -621,6 +895,134 @@
     jsr set_level_bg_color
     jsr do_screen_flip          ; Redraw viewport, HUD, re-enable rendering
 @done:
+    rts
+.endproc
+
+; ------------------------------------------------------------
+; pause_write_char
+; Queue a single character write to VRAM buffer on pause screen.
+; Input: A = character, temp_1 = col, temp_2 = row
+; Clobbers: X
+; ------------------------------------------------------------
+.proc pause_write_char
+    jsr vram_write_tile
+    rts
+.endproc
+
+; ------------------------------------------------------------
+; pause_draw_inventory
+; Draw inventory items on the pause screen (rows 12-21).
+; Uses direct PPU writes (rendering must be off).
+; ------------------------------------------------------------
+.proc pause_draw_inventory
+    lda inventory_count
+    bne @has_items
+
+    ; Empty inventory
+    lda #<str_inv_empty
+    sta ptr_lo
+    lda #>str_inv_empty
+    sta ptr_hi
+    lda #5
+    sta temp_1
+    lda #12
+    sta temp_2
+    jsr ppu_draw_text
+    rts
+
+@has_items:
+    ; Draw up to 10 items starting from row 12
+    ldx #$00                    ; Inventory index
+    lda #12
+    sta temp_3                  ; Current row
+
+@item_loop:
+    cpx inventory_count
+    bne @not_end
+    jmp @inv_done
+@not_end:
+    lda temp_3
+    cmp #22                     ; Max row 21 (10 items)
+    bne @not_full_screen
+    jmp @inv_done
+@not_full_screen:
+
+    stx temp_mon_idx            ; Save inventory index
+
+    ; Get item name pointer based on category + subtype
+    lda inv_cat, x
+    cmp #ITEM_WEAPON
+    beq @draw_weapon
+    cmp #ITEM_ARMOR
+    beq @draw_armor
+    cmp #ITEM_POTION
+    beq @draw_potion
+    cmp #ITEM_WAND
+    beq @draw_wand
+    jmp @next_item              ; Gold/food shouldn't be in inventory
+
+@draw_weapon:
+    ldy inv_sub, x
+    lda weapon_name_lo, y
+    sta ptr_lo
+    lda weapon_name_hi, y
+    sta ptr_hi
+    jmp @do_draw
+
+@draw_armor:
+    ldy inv_sub, x
+    lda armor_name_lo, y
+    sta ptr_lo
+    lda armor_name_hi, y
+    sta ptr_hi
+    jmp @do_draw
+
+@draw_potion:
+    ldy inv_sub, x
+    lda potion_name_lo, y
+    sta ptr_lo
+    lda potion_name_hi, y
+    sta ptr_hi
+    jmp @do_draw
+
+@draw_wand:
+    ldy inv_sub, x
+    lda wand_name_lo, y
+    sta ptr_lo
+    lda wand_name_hi, y
+    sta ptr_hi
+
+@do_draw:
+    lda #5
+    sta temp_1
+    lda temp_3
+    sta temp_2
+    jsr ppu_draw_text
+
+    ; Draw equipped indicator "E" at column 3 if this item is equipped
+    ldx temp_mon_idx
+    cpx equipped_weapon
+    beq @draw_equip
+    cpx equipped_armor
+    beq @draw_equip
+    jmp @next_item
+@draw_equip:
+    lda $2002                   ; Reset PPU latch
+    lda #3                      ; Column 3
+    sta temp_1
+    lda temp_3                  ; Current row
+    sta temp_2
+    jsr ppu_set_addr
+    lda #'E'
+    sta $2007
+
+@next_item:
+    ldx temp_mon_idx
+    inx
+    inc temp_3
+    jmp @item_loop
+
+@inv_done:
     rts
 .endproc
 
@@ -672,7 +1074,7 @@
     sta temp_2
     jsr draw_text
 
-    ; Draw floor reached
+    ; Draw floor reached (14 chars at col 8, ends col 21, colon at 21)
     lda #<str_floor_reached
     sta ptr_lo
     lda #>str_floor_reached
@@ -683,7 +1085,7 @@
     sta temp_2
     jsr draw_text
 
-    lda #23                     ; X after "FLOOR: "
+    lda #24                     ; Number at col 24 (after colon + space)
     sta temp_1
     lda #13
     sta temp_2
@@ -692,18 +1094,18 @@
     adc #$01
     jsr draw_number
 
-    ; Draw gold collected
+    ; Draw gold collected (15 chars at col 7, ends col 21, colon at 21)
     lda #<str_gold_label
     sta ptr_lo
     lda #>str_gold_label
     sta ptr_hi
-    lda #9
+    lda #7
     sta temp_1
     lda #15
     sta temp_2
     jsr draw_text
 
-    lda #23
+    lda #24
     sta temp_1
     lda #15
     sta temp_2
@@ -764,6 +1166,8 @@
     rts
 
 @going_down:
+    lda #SFX_STAIRS
+    jsr sfx_play
     inc dungeon_level
     lda dungeon_level
     cmp #MAX_DUNGEON_LEVEL
@@ -864,6 +1268,8 @@
     sta player_str
     lda #START_DEF
     sta player_def
+    lda #START_AGI
+    sta player_agi
     lda #START_GOLD
     sta player_gold
     lda #START_LEVEL
@@ -877,10 +1283,41 @@
     sta turn_taken
     sta turn_counter
     sta player_status
+    sta confuse_timer
+    sta blind_timer
     sta flash_timer
     sta msg_turn_priority
     sta msg_new_priority
     sta msg_dirty
+
+    ; Give player starting equipment: Mace + Leather Armor
+    lda #$00
+    sta inventory_count
+
+    ; Slot 0: Mace (+1)
+    lda #ITEM_WEAPON
+    sta inv_cat
+    lda #WEAPON_MACE
+    sta inv_sub
+    lda #$01                    ; +1 enchantment
+    sta inv_mod
+
+    ; Slot 1: Leather Armor (+0)
+    lda #ITEM_ARMOR
+    sta inv_cat + 1
+    lda #ARMOR_LEATHER
+    sta inv_sub + 1
+    lda #$00
+    sta inv_mod + 1
+
+    lda #$02
+    sta inventory_count
+
+    ; Auto-equip starting gear
+    lda #$00
+    sta equipped_weapon         ; Inventory slot 0 = Mace
+    lda #$01
+    sta equipped_armor          ; Inventory slot 1 = Leather Armor
 
     ; Clear message buffers so old messages don't persist
     ldy #31

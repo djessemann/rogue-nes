@@ -82,12 +82,13 @@ STATE_PAUSE     = 6
 ; --- Player Starting Stats ---
 START_HP        = 12
 START_MAX_HP    = 12
-START_STR       = 16
-START_DEF       = 15            ; Ring mail (classic AC 5 → ascending 15)
+START_STR       = 0             ; Strength bonus (added to weapon power)
+START_DEF       = 0             ; Defense bonus (added to armor defense)
+START_AGI       = 10            ; Agility (added to hit chance)
 START_GOLD      = 0
 START_LEVEL     = 1
 START_XP        = 0
-START_HUNGER    = $FF           ; ~255 turns (simplified for NES)
+START_HUNGER    = 200           ; ~200 turns before starving
 
 ; --- Dungeon Generation ---
 GRID_ROWS       = 6             ; 6x6 room grid across 64x48 map
@@ -117,24 +118,89 @@ MON_EMU         = 1
 MON_HOBGOBLIN   = 2
 MON_SNAKE       = 3
 MON_ZOMBIE      = 4
+MON_CENTAUR     = 5
+MON_TROLL       = 6
+MON_WRAITH      = 7
+MON_GRIFFIN      = 8
+NUM_MONSTERS    = 9
 
 ; Monster flags
 MFLAG_AWAKE     = %00000001
 MFLAG_AGGRESSIVE = %00000010    ; Starts awake
 MFLAG_ERRATIC   = %00000100    ; Random movement 50%
+MFLAG_SLOW      = %00001000    ; Skips turn 50% of the time (wand effect)
 
 ; --- Items ---
-MAX_FLOOR_ITEMS = 16
+MAX_FLOOR_ITEMS = 32
 MAX_INVENTORY   = 23
 
-; Item types
+; Item categories
 ITEM_GOLD       = 0
 ITEM_FOOD       = 1
-; (more in Phase 2)
+ITEM_WEAPON     = 2
+ITEM_ARMOR      = 3
+ITEM_POTION     = 4
+ITEM_SCROLL     = 5
+ITEM_WAND       = 6
+
+; Weapon subtypes
+WEAPON_MACE           = 0
+WEAPON_SHORT_SWORD    = 1
+WEAPON_LONG_SWORD     = 2
+WEAPON_TWO_HAND_SWORD = 3
+WEAPON_WAR_HAMMER     = 4
+NUM_WEAPONS           = 5
+
+; Armor subtypes
+ARMOR_LEATHER     = 0
+ARMOR_RING_MAIL   = 1
+ARMOR_SCALE_MAIL  = 2
+ARMOR_CHAIN_MAIL  = 3
+ARMOR_PLATE_MAIL  = 4
+NUM_ARMORS        = 5
+
+; Potion subtypes
+POTION_HEALING       = 0
+POTION_EXTRA_HEALING = 1
+POTION_STRENGTH      = 2
+POTION_POISON        = 3
+POTION_CONFUSION     = 4
+POTION_BLINDNESS     = 5
+NUM_POTIONS          = 6
+
+; Wand subtypes
+WAND_TELEPORT_AWAY = 0
+WAND_SLOW          = 1
+WAND_FIRE          = 2
+WAND_LIGHTNING     = 3
+NUM_WANDS          = 4
+
+; Inventory structure: 3 bytes per slot (category, subtype, modifier)
+ITEM_STRUCT_SIZE  = 3
+INV_OFFSET_CAT    = 0           ; Item category (ITEM_WEAPON, etc.)
+INV_OFFSET_SUB    = 1           ; Subtype (WEAPON_MACE, etc.)
+INV_OFFSET_MOD    = 2           ; Modifier (+1, +2, charges, etc.)
+
+; --- Status Effects ---
+STATUS_CONFUSED = %00000001
+STATUS_BLIND    = %00000010
+CONFUSE_DURATION = 10           ; Turns of confusion
+BLIND_DURATION   = 15           ; Turns of blindness
 
 ; --- Combat ---
-; d20 system parameters
-D20_SIDES       = 20
+; JRPG-style parameters
+BASE_HIT_CHANCE = 85            ; Base accuracy percentage (0-100)
+DEFAULT_WEAPON_POWER = 2        ; Bare-hands attack power
+
+; --- Sound Effects ---
+SFX_NONE            = $FF
+SFX_FOOTSTEP        = 0
+SFX_ITEM_PICKUP     = 1
+SFX_PLAYER_HIT      = 2
+SFX_MONSTER_HIT     = 3
+SFX_MONSTER_DEAD    = 4
+SFX_STAIRS          = 5
+SFX_GAME_OVER       = 6
 
 ; --- Hunger ---
 HUNGER_MAX      = 255           ; Simplified for 8-bit

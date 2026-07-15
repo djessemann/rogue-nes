@@ -186,7 +186,7 @@
     bcc @skip                   ; Off-screen left
     cmp #VIEW_W
     bcs @skip                   ; Off-screen right
-    sta temp_4                  ; Screen X
+    sta temp_4                  ; Screen X (nametable col)
 
     lda player_y
     sec
@@ -195,9 +195,11 @@
     cmp #VIEW_H
     bcs @skip
 
-    ; Screen Y + MAP_TOP_ROW
+    ; Screen Y + MAP_TOP_ROW = nametable row
     clc
     adc #MAP_TOP_ROW
+
+    ; Calculate PPU address
     sta temp_1
     lsr a
     lsr a
@@ -239,11 +241,15 @@
     ldx #$00
 @loop:
     cpx monster_count
-    beq @done
+    bne @not_done
+    jmp @done
+@not_done:
 
     ; Skip dead monsters (hp = 0)
     lda mon_hp, x
-    beq @next
+    bne @alive
+    jmp @next
+@alive:
 
     ; Check if monster is in viewport
     lda mon_x, x
@@ -326,7 +332,9 @@
     ldx #$00
 @loop:
     cpx floor_item_count
-    beq @done
+    bne @not_done
+    jmp @done
+@not_done:
 
     ; Check viewport bounds
     lda fi_x, x
@@ -355,7 +363,7 @@
     lda fi_type, x
     tay
     lda item_chr_tile, y
-    pha
+    pha                         ; Save CHR tile
 
     ; PPU address
     lda fi_y, x

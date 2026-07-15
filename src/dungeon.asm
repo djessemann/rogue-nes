@@ -111,8 +111,8 @@
     ; --- Spawn monsters ---
     jsr spawn_monsters
 
-    ; --- Spawn items (gold, food) --- DISABLED for testing
-    ; jsr spawn_items
+    ; --- Spawn items (gold, food, equipment, consumables) ---
+    jsr spawn_items
 
     rts
 .endproc
@@ -606,17 +606,9 @@
     adc room_y, y
     sta mon_y, x
 
-    ; HP from type table
-    stx temp_2                  ; Save monster index
+    ; HP from type table (flat value, JRPG-style)
     ldy mon_type, x
     lda mon_base_hp, y
-    sta temp_3
-    ; Roll HP dice: base_hp is max of 1d(base_hp)
-    lda temp_3
-    jsr rng_range
-    clc
-    adc #$01                    ; 1 to base_hp
-    ldx temp_2
     sta mon_hp, x
 
     ; Set flags based on type
@@ -652,10 +644,31 @@
 ; Output: A = monster type index
 ; ------------------------------------------------------------
 .proc pick_monster_type
-    ; Simple: weight toward harder monsters on deeper levels
-    ; Phase 1: 5 monster types (0-4)
-    lda #$05
-    jsr rng_range               ; 0-4
+    ; Tiered monster pool based on dungeon level:
+    ;   Floors 0-2:  B E H S Z          (5 types, indices 0-4)
+    ;   Floors 3-4:  B E H S Z C        (6 types, + Centaur)
+    ;   Floors 5-6:  B E H S Z C T W    (8 types, + Troll, Wraith)
+    ;   Floors 7+:   B E H S Z C T W G  (9 types, + Griffin)
+    lda dungeon_level
+    cmp #7
+    bcs @tier4
+    cmp #5
+    bcs @tier3
+    cmp #3
+    bcs @tier2
+    ; Tier 1: floors 0-2
+    lda #5
+    jmp @roll
+@tier2:
+    lda #6
+    jmp @roll
+@tier3:
+    lda #8
+    jmp @roll
+@tier4:
+    lda #NUM_MONSTERS           ; All 9
+@roll:
+    jsr rng_range
     rts
 .endproc
 
@@ -672,20 +685,22 @@
 @not_done_1:
     stx temp_room_idx
 
-    ; 50% chance of gold per room
+    ; 50% chance of gold per room (classic Rogue: gold in most rooms)
     jsr rng_next
-    cmp #128
+    cmp #128                    ; ~50% of 256
     bcs @no_gold
 
     lda floor_item_count
     cmp #MAX_FLOOR_ITEMS
     bne @not_full
-    jmp @done
+    jmp @no_gold                ; Skip gold, but continue to other item types
 @not_full:
 
     ldx floor_item_count
     lda #ITEM_GOLD
     sta fi_type, x
+    lda #$00
+    sta fi_sub, x
 
     ; Random position in room
     ldy temp_room_idx
@@ -725,18 +740,22 @@
     inc floor_item_count
 
 @no_gold:
-    ; 15% chance of food per room
+    ; 25% chance of food per room (hunger clock is a core mechanic)
     jsr rng_next
-    cmp #38                     ; ~15% of 256
+    cmp #64                     ; ~25% of 256
     bcs @no_food
 
     lda floor_item_count
     cmp #MAX_FLOOR_ITEMS
-    beq @done
+    bne @food_not_full
+    jmp @no_food                ; Skip food, but continue to equipment
+@food_not_full:
 
     ldx floor_item_count
     lda #ITEM_FOOD
     sta fi_type, x
+    lda #$00
+    sta fi_sub, x
 
     ldy temp_room_idx
     lda room_w, y
@@ -767,10 +786,120 @@
     lda #$00                    ; Food has no modifier
     ldx floor_item_count
     sta fi_mod, x
+    sta fi_sub, x
 
     inc floor_item_count
 
 @no_food:
+    ; 45% chance of equipment/consumable per room
+    jsr rng_next
+    cmp #115                    ; ~45% of 256
+    bcc @try_item
+    jmp @no_item
+@try_item:
+
+    lda floor_item_count
+    cmp #MAX_FLOOR_ITEMS
+    bne @item_not_full
+    jmp @no_item                ; Skip this item, continue to next room
+@item_not_full:
+
+    ldx floor_item_count
+
+    ; Random position in room
+    ldy temp_room_idx
+    lda room_w, y
+    sec
+    sbc #$02
+    jsr rng_range
+    clc
+    adc #$01
+    clc
+    ldy temp_room_idx
+    adc room_x, y
+    ldx floor_item_count
+    sta fi_x, x
+
+    ldy temp_room_idx
+    lda room_h, y
+    sec
+    sbc #$02
+    jsr rng_range
+    clc
+    adc #$01
+    clc
+    ldy temp_room_idx
+    adc room_y, y
+    ldx floor_item_count
+    sta fi_y, x
+
+    ; Pick item category:
+    ; Potion(40%), Weapon(20%), Armor(20%), Wand(20%)
+    jsr rng_next
+    cmp #102                    ; 0-101: potion (40%)
+    bcc @spawn_potion
+    cmp #153                    ; 102-152: weapon (20%)
+    bcc @spawn_weapon
+    cmp #204                    ; 153-203: armor (20%)
+    bcc @spawn_armor
+    jmp @spawn_wand             ; 204-255: wand (20%)
+
+@spawn_weapon:
+    ldx floor_item_count
+    lda #ITEM_WEAPON
+    sta fi_type, x
+    lda #NUM_WEAPONS
+    jsr rng_range
+    ldx floor_item_count
+    sta fi_sub, x
+    lda #$01                    ; +1 modifier (enchantment)
+    sta fi_mod, x
+    jmp @item_placed
+
+@spawn_armor:
+    ldx floor_item_count
+    lda #ITEM_ARMOR
+    sta fi_type, x
+    lda #NUM_ARMORS
+    jsr rng_range
+    ldx floor_item_count
+    sta fi_sub, x
+    lda #$00                    ; +0 modifier
+    sta fi_mod, x
+    jmp @item_placed
+
+@spawn_potion:
+    ldx floor_item_count
+    lda #ITEM_POTION
+    sta fi_type, x
+    lda #NUM_POTIONS
+    jsr rng_range
+    ldx floor_item_count
+    sta fi_sub, x
+    lda #$01                    ; 1 use
+    sta fi_mod, x
+    jmp @item_placed
+
+@spawn_wand:
+    ldx floor_item_count
+    lda #ITEM_WAND
+    sta fi_type, x
+    lda #NUM_WANDS
+    jsr rng_range
+    ldx floor_item_count
+    sta fi_sub, x
+    ; Wand charges: 3-8
+    lda #$06
+    jsr rng_range
+    clc
+    adc #$03
+    ldx floor_item_count
+    sta fi_mod, x
+
+@item_placed:
+    inc floor_item_count
+
+@no_item:
     ldx temp_room_idx
     inx
     jmp @room_loop

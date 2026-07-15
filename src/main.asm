@@ -49,13 +49,23 @@ player_x:           .res 1      ; Map tile X (0-31)
 player_y:           .res 1      ; Map tile Y (0-23)
 player_hp:          .res 1      ; Current HP
 player_max_hp:      .res 1      ; Maximum HP
-player_str:         .res 1      ; Strength
-player_def:         .res 1      ; Defense
+player_str:         .res 1      ; Strength bonus (added to weapon power)
+player_def:         .res 1      ; Defense bonus (added to armor defense)
+player_agi:         .res 1      ; Agility (added to hit chance)
 player_gold:        .res 1      ; Gold (0-255)
 player_level:       .res 1      ; Character level
 player_xp:          .res 1      ; Experience points
 player_hunger:      .res 1      ; Hunger counter
 player_status:      .res 1      ; Status effect flags
+confuse_timer:      .res 1      ; Turns remaining for confusion
+blind_timer:        .res 1      ; Turns remaining for blindness
+
+; --- SFX engine ---
+sfx_id:             .res 1      ; Current SFX ID ($FF = none)
+sfx_ptr_lo:         .res 1      ; SFX data pointer low
+sfx_ptr_hi:         .res 1      ; SFX data pointer high
+sfx_timer:          .res 1      ; Frames until next SFX group
+sfx_request:        .res 1      ; Pending SFX request ($FF = none)
 
 ; --- Movement ---
 move_dx:            .res 1      ; Desired X delta (-1, 0, 1)
@@ -89,6 +99,7 @@ temp_room_idx:      .res 1
 temp_mon_idx:       .res 1
 monster_count:      .res 1
 floor_item_count:   .res 1
+inventory_count:    .res 1      ; Number of items in player inventory
 
 ; --- Message system ---
 msg_new_lo:         .res 1
@@ -114,6 +125,10 @@ flash_timer:         .res 1     ; Frames remaining for flash (0 = off)
 flash_x:             .res 1     ; Map X of flash tile
 flash_y:             .res 1     ; Map Y of flash tile
 flash_is_kill:       .res 1     ; 1 = dead monster (restore floor), 0 = alive (restore entity)
+
+; --- Inventory UI ---
+inv_cursor:          .res 1     ; Selected inventory slot index
+inv_scroll:          .res 1     ; Scroll offset for inventory display
 
 ; ============================================================
 ; OAM Shadow Buffer ($0200-$02FF)
@@ -150,8 +165,18 @@ mon_state:          .res MAX_MONSTERS
 ; --- Floor items (16 max) ---
 fi_x:               .res MAX_FLOOR_ITEMS
 fi_y:               .res MAX_FLOOR_ITEMS
-fi_type:            .res MAX_FLOOR_ITEMS
-fi_mod:             .res MAX_FLOOR_ITEMS
+fi_type:            .res MAX_FLOOR_ITEMS    ; Item category (ITEM_WEAPON, etc.)
+fi_sub:             .res MAX_FLOOR_ITEMS    ; Subtype (WEAPON_MACE, etc.)
+fi_mod:             .res MAX_FLOOR_ITEMS    ; Modifier (+1, charges, gold amount)
+
+; --- Player inventory (23 max, 3 bytes per slot) ---
+inv_cat:            .res MAX_INVENTORY      ; Item category
+inv_sub:            .res MAX_INVENTORY      ; Subtype
+inv_mod:            .res MAX_INVENTORY      ; Modifier
+
+; --- Equipped items ---
+equipped_weapon:    .res 1      ; Inventory index of equipped weapon ($FF = none)
+equipped_armor:     .res 1      ; Inventory index of equipped armor ($FF = none)
 
 ; --- VRAM buffer (shared with NMI) ---
 vram_buf:           .res 256
@@ -179,14 +204,18 @@ msg_build_pos:      .res 1          ; Current write position in msg_build
 .include "player.asm"
 .include "monsters.asm"
 .include "combat.asm"
+.include "items.asm"
 .include "hud.asm"
 .include "messages.asm"
 .include "hunger.asm"
+.include "sfx.asm"
 
 ; Include data
 .include "data/palettes.asm"
 .include "data/monsters.asm"
+.include "data/items.asm"
 .include "data/strings.asm"
+.include "data/sfx.asm"
 .include "data/chr.asm"
 
 ; ============================================================

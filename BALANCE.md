@@ -1,116 +1,147 @@
-# Rogue NES — Combat & Stats Balance Reference
+# Rogue 6502 — Combat & Stats Balance Reference
 
 All values below reflect the current code. Edit the source files listed to change them.
 
 ---
 
+## Combat System
+
+JRPG-style flat ATK/DEF with accuracy check. No dice rolls for damage.
+
+### Player Attack Formula
+
+```
+Hit check:  rng(100) < (85 + player_agility - monster_evasion)
+Damage:     weapon_power + enchantment + player_str - monster_def +/- 1
+            (minimum 1 damage on a hit)
+```
+
+**Source:** `combat.asm` → `player_attack_monster`
+
+### Monster Attack Formula
+
+```
+Monsters always hit (no miss chance).
+Damage:     monster_atk - (armor_defense + enchantment + player_def) +/- 1
+            (minimum 1 damage)
+```
+
+**Source:** `combat.asm` → `monster_attack_player`
+
+---
+
 ## Player Stats
 
-| Stat | Starting Value | Source File |
-|------|---------------|-------------|
+| Stat | Starting Value | Source |
+|------|---------------|--------|
 | HP | 12 | `constants.asm` → `START_HP` |
 | Max HP | 12 | `constants.asm` → `START_MAX_HP` |
-| Defense (ascending AC) | 15 | `constants.asm` → `START_DEF` |
-| Strength | 16 | `constants.asm` → `START_STR` (not used in combat yet) |
+| STR bonus | 0 | `constants.asm` → `START_STR` |
+| DEF bonus | 0 | `constants.asm` → `START_DEF` |
+| Agility | 10 | `constants.asm` → `START_AGI` |
 | Level | 1 | `constants.asm` → `START_LEVEL` |
 | XP | 0 | `constants.asm` → `START_XP` |
-| Hunger | 255 | `constants.asm` → `START_HUNGER` (turns until starving) |
+| Hunger | 200 | `constants.asm` → `START_HUNGER` |
 | Gold | 0 | `constants.asm` → `START_GOLD` |
 
-### Player Weapon
-
-| Property | Value | Source |
-|----------|-------|--------|
-| Weapon | +1,+1 Mace (classic Rogue starting weapon) | `combat.asm` → `player_attack_monster` |
-| Damage dice | 1d8 | `combat.asm` line 38-41 |
-| Enchantment bonus | +1 to damage | `combat.asm` line 44-45 |
-| **Total damage per hit** | **2–9** | 1d8 + 1 |
-| To-hit bonus | +1 (weapon) + player_level | `combat.asm` lines 24-28 |
-
-### Player Attack Roll
-
-```
-Roll = d20 + player_level + weapon_bonus(1)
-Hit if Roll >= monster_armor (ascending AC)
-```
-
-At level 1: Roll = d20 + 1 + 1 = d20 + 2 (range 3–22)
-
-### Player Defense
-
-```
-Monster roll = d20 + monster_level
-Hit if roll >= player_def (15)
-```
-
-Classic Rogue equivalent: Ring mail (descending AC 5 → ascending 15)
+Starting equipment: Mace (+1 enchantment), Leather Armor (+0 enchantment)
 
 ---
 
-## Monster Stats
+## Weapons
 
-All values from `data/monsters.asm`. Classic Rogue source used as reference.
+**Source:** `data/items.asm` → `weapon_power`
 
-| | Bat (B) | Emu (E) | Hobgoblin (H) | Snake (S) | Zombie (Z) |
-|---|---------|---------|----------------|-----------|-------------|
-| **HP dice** | 1d8 | 1d8 | 1d8 | 1d8 | 2d8 |
-| **HP range** | 1–8 | 1–8 | 1–8 | 1–8 | 1–16 |
-| **Defense (asc. AC)** | 17 | 13 | 15 | 15 | 12 |
-| **Classic AC (desc.)** | 3 | 7 | 5 | 5 | 8 |
-| **Level** | 1 | 1 | 1 | 1 | 2 |
-| **Damage** | 1d2 (1–2) | 1d2 (1–2) | 1d8 (1–8) | 1d3 (1–3) | 1d8 (1–8) |
-| **XP reward** | 1 | 2 | 3 | 2 | 6 |
-| **Behavior** | Erratic (random 50%) | Aggressive | Aggressive | Aggressive | Aggressive |
-| **Starts awake?** | No (wakes at dist ≤5) | Yes | Yes | Yes | Yes |
+| Weapon | ATK Power | Notes |
+|--------|-----------|-------|
+| Mace | 6 | Starting weapon |
+| Short Sword | 7 | Slight upgrade |
+| Long Sword | 10 | Mid-tier |
+| War Hammer | 12 | Heavy hitter |
+| Two-Hand Sword | 15 | Best weapon, rare |
 
-### Monster HP Spawn Logic
+Enchantment modifier adds directly to ATK (+1, +2, etc). Found weapons spawn with +1 enchantment.
 
-HP is rolled as `1d(base_hp)` at spawn. For zombies, `base_hp = 16` so they get 1d16 (1–16), not the classic 2d8 (2–16). This means zombies can spawn with 1 HP — classic Rogue's 2d8 guarantees at least 2.
-
-**Source:** `dungeon.asm` → `spawn_monsters`, lines 612–620
+Bare hands: 2 ATK (`constants.asm` → `DEFAULT_WEAPON_POWER`).
 
 ---
 
-## Hit Rate Table
+## Armor
 
-### Player hitting monsters (Level 1)
+**Source:** `data/items.asm` → `armor_defense`
 
-Player roll: d20 + 2 (level 1 + weapon +1). Needs to meet/exceed monster AC.
+| Armor | DEF | Notes |
+|-------|-----|-------|
+| Leather Armor | 4 | Starting armor |
+| Ring Mail | 6 | Early upgrade |
+| Scale Mail | 8 | Mid-game |
+| Chain Mail | 10 | Late-game |
+| Plate Mail | 12 | Best armor |
 
-| Monster | AC (ascending) | Min d20 to hit | Hit chance |
-|---------|---------------|----------------|------------|
-| Bat | 17 | 15 | 30% (6/20) |
-| Emu | 13 | 11 | 50% (10/20) |
-| Hobgoblin | 15 | 13 | 40% (8/20) |
-| Snake | 15 | 13 | 40% (8/20) |
-| Zombie | 12 | 10 | 55% (11/20) |
-
-### Monsters hitting player (Player def = 15)
-
-Monster roll: d20 + monster_level. Needs to meet/exceed 15.
-
-| Monster | Level | Min d20 to hit | Hit chance |
-|---------|-------|----------------|------------|
-| Bat | 1 | 14 | 35% (7/20) |
-| Emu | 1 | 14 | 35% (7/20) |
-| Hobgoblin | 1 | 14 | 35% (7/20) |
-| Snake | 1 | 14 | 35% (7/20) |
-| Zombie | 2 | 13 | 40% (8/20) |
+Enchantment modifier adds directly to DEF. Found armor spawns with +0 enchantment.
 
 ---
 
-## Expected Combat Outcomes (Level 1 Player vs Monster)
+## Monsters
 
-Average hits to kill = monster avg HP ÷ player avg damage per hit (5.5)
-Average hits to kill player = player HP (12) ÷ monster avg damage per hit
+**Source:** `data/monsters.asm`
 
-| Monster | Avg HP | Hits to kill | Player hits to kill (accounting miss) | Monster avg dmg | Hits to kill player | Monster hits to kill (accounting miss) | Advantage |
-|---------|--------|-------------|--------------------------------------|-----------------|--------------------|-----------------------------------------|-----------|
-| Bat | 4.5 | 0.8 | ~3 turns | 1.5 | 8 | ~23 turns | Player |
-| Emu | 4.5 | 0.8 | ~2 turns | 1.5 | 8 | ~23 turns | Player |
-| Hobgoblin | 4.5 | 0.8 | ~2 turns | 4.5 | 2.7 | ~8 turns | Player (risky) |
-| Snake | 4.5 | 0.8 | ~2 turns | 2.0 | 6 | ~17 turns | Player |
-| Zombie | 8.5 | 1.5 | ~3 turns | 4.5 | 2.7 | ~7 turns | Player (dangerous) |
+| Monster | HP | ATK | DEF | Evasion | XP | Floors | Behavior |
+|---------|-----|-----|-----|---------|-----|--------|----------|
+| Bat (B) | 3 | 2 | 0 | 30 | 1 | 0-2 | Erratic, sleeps |
+| Snake (S) | 5 | 3 | 0 | 20 | 2 | 0-2 | Aggressive |
+| Emu (E) | 6 | 4 | 1 | 5 | 2 | 0-2 | Aggressive |
+| Hobgoblin (H) | 8 | 5 | 2 | 5 | 3 | 0-2 | Aggressive |
+| Zombie (Z) | 14 | 6 | 3 | 0 | 6 | 0-4 | Aggressive |
+| Centaur (C) | 20 | 9 | 4 | 10 | 15 | 3-6 | Aggressive |
+| Wraith (W) | 18 | 8 | 3 | 20 | 55 | 5-7+ | Aggressive |
+| Troll (T) | 28 | 12 | 5 | 5 | 50 | 5-7+ | Aggressive |
+| Griffin (G) | 40 | 16 | 7 | 10 | 100 | 7+ | Aggressive |
+
+Monster HP is flat (no dice roll at spawn).
+
+### Monster Spawn Tiers
+
+- Floors 0-2: Bat, Emu, Hobgoblin, Snake, Zombie (5 types)
+- Floors 3-4: + Centaur (6 types)
+- Floors 5-6: + Troll, Wraith (8 types)
+- Floors 7+: + Griffin (all 9 types)
+
+72% chance of a monster per room. Max 10 per floor. Aggressive monsters start awake; Bat sleeps until player is within 5 tiles.
+
+---
+
+## Hit Rate Examples
+
+Base hit chance: 85% (`constants.asm` → `BASE_HIT_CHANCE`)
+
+| Target | Evasion | Hit Chance (Level 1, AGI 10) |
+|--------|---------|------------------------------|
+| Bat | 30 | 65% |
+| Snake | 20 | 75% |
+| Emu | 5 | 90% |
+| Hobgoblin | 5 | 90% |
+| Zombie | 0 | 95% |
+| Centaur | 10 | 85% |
+| Wraith | 20 | 75% |
+| Griffin | 10 | 85% |
+
+Minimum hit chance: 5%. Agility grows +2 every odd level.
+
+---
+
+## Expected Combat Outcomes (Level 1, Mace +1, Leather Armor)
+
+Player effective ATK: 6 + 1 (enchant) + 0 (str) = 7
+Player effective DEF: 4 + 0 (enchant) + 0 (def bonus) = 4
+
+| Monster | Player DMG/hit | Hits to kill | Monster DMG/hit | Hits to kill player |
+|---------|---------------|-------------|-----------------|---------------------|
+| Bat | 7-0 = 7 | 1 | 2-4 = 1 (min) | 12 |
+| Snake | 7-0 = 7 | 1 | 3-4 = 1 (min) | 12 |
+| Emu | 7-1 = 6 | 1 | 4-4 = 1 (min) | 12 |
+| Hobgoblin | 7-2 = 5 | 2 | 5-4 = 1 | 12 |
+| Zombie | 7-3 = 4 | 3-4 | 6-4 = 2 | 6 |
 
 ---
 
@@ -120,41 +151,80 @@ Average hits to kill player = player HP (12) ÷ monster avg damage per hit
 
 ### XP Thresholds
 
-| Level | XP Required | Cumulative monsters needed (approx) |
-|-------|------------|--------------------------------------|
-| 2 | 10 | ~4–10 monsters |
-| 3 | 20 | ~8–20 monsters |
-| 4 | 40 | ~16–40 monsters |
-| 5 | 80 | ~32–80 monsters |
-| 6 | 160 | ~64–160 monsters |
-| 7+ | 255 (cap) | — |
-| Max | 12 | — |
-
-XP is capped at 255 (8-bit). Thresholds are stored in `xp_thresholds` table.
+| Level | XP Required |
+|-------|------------|
+| 2 | 10 |
+| 3 | 20 |
+| 4 | 40 |
+| 5 | 80 |
+| 6 | 160 |
+| 7+ | 255 (cap) |
+| Max | 12 |
 
 ### Level Up Effects
 
-On level up:
-1. **Max HP increases by 2–9** (1d8 + 2) — `combat.asm` lines 248–257
-2. **Current HP fully healed** to new max — `combat.asm` lines 260–261
-3. **Player level increases by 1** — affects to-hit roll (+1 per level)
-
-### What Level Up Does NOT Change
-
-- **Defense (AC)** — stays at 15 forever (no armor upgrades yet)
-- **Damage** — stays at 1d8+1 forever (no weapon upgrades yet)
-- **Strength** — `player_str` exists but is not used in combat formulas
-- **Hunger rate** — always -1 per turn regardless of level
+1. **Max HP +5** (flat, predictable)
+2. **Current HP fully healed** to new max
+3. **STR bonus +1** every level (adds to weapon damage)
+4. **DEF bonus +1** every even level (adds to armor defense)
+5. **Agility +2** every odd level (adds to hit chance)
 
 ### Scaling Per Level
 
-| Level | To-hit bonus | Hit rate vs Bat | Hit rate vs Zombie | Avg Max HP |
-|-------|-------------|-----------------|--------------------|----|
-| 1 | +2 | 30% | 55% | 12 |
-| 2 | +3 | 35% | 60% | 17.5 |
-| 3 | +4 | 40% | 65% | 23 |
-| 4 | +5 | 45% | 70% | 28.5 |
-| 5 | +6 | 50% | 75% | 34 |
+| Level | STR | DEF | AGI | Max HP | Hit vs Bat | Hit vs Zombie |
+|-------|-----|-----|-----|--------|-----------|--------------|
+| 1 | 0 | 0 | 10 | 12 | 65% | 95% |
+| 2 | 1 | 1 | 10 | 17 | 65% | 95% |
+| 3 | 2 | 1 | 12 | 22 | 67% | 97% |
+| 4 | 3 | 2 | 12 | 27 | 67% | 97% |
+| 5 | 4 | 2 | 14 | 32 | 69% | 99% |
+
+---
+
+## Items
+
+### Potions (6 types)
+
+**Source:** `items.asm` → `item_use`
+
+| Potion | Effect |
+|--------|--------|
+| Healing | Restore 25% max HP |
+| Extra Healing | Restore 50% max HP |
+| Strength | +1 permanent STR bonus |
+| Poison | -1 permanent STR bonus |
+| Confusion | Random movement for 10 turns |
+| Blindness | Can't see (fog suppressed) for 15 turns |
+
+### Wands (4 types)
+
+Auto-target nearest awake monster within 8 tiles. Charges: 3-8 (random at spawn).
+
+| Wand | Effect |
+|------|--------|
+| Teleport Away | Move target to random room |
+| Slow Monster | Target skips 50% of turns (permanent) |
+| Fire | Deal 8 damage |
+| Lightning | Deal 12 damage |
+
+### Item Spawn Rates
+
+Per room: Gold 50%, Food 25%, Equipment 45%.
+
+Equipment distribution: Potion 40%, Weapon 20%, Armor 20%, Wand 20%.
+
+---
+
+## Status Effects
+
+**Source:** `constants.asm`, `hunger.asm` → `status_update`
+
+| Effect | Flag | Duration | Behavior |
+|--------|------|----------|----------|
+| Confusion | `STATUS_CONFUSED` | 10 turns | Directional input replaced with random direction |
+| Blindness | `STATUS_BLIND` | 15 turns | Fog reveals suppressed; screen goes dark |
+
+Timers decrement once per player turn. Messages shown when effects wear off.
 
 ---
 
@@ -164,37 +234,30 @@ On level up:
 
 | Threshold | Value | Effect |
 |-----------|-------|--------|
-| Full | 255 | Starting value |
+| Full | 200 | Starting value |
 | Normal | 150+ | No effect |
-| Hungry | 50 | Warning message shown |
-| Weak | 10 | Warning message shown |
+| Hungry | 50 | Warning message |
+| Weak | 10 | Warning message |
 | Starving | 0 | Lose 1 HP per turn |
 
-- Hunger decreases by 1 per turn (each player action)
-- Food restores 100 hunger + heals 25% max HP
-- **255 turns until starving** from full (items disabled currently)
+Food restores 100 hunger + heals 25% max HP.
 
 ---
 
-## Monster Spawn Rules
+## Dungeon Generation
 
-**Source:** `dungeon.asm` → `spawn_monsters`
+**Source:** `dungeon.asm`
 
-- Monsters spawn in rooms 1+ (never room 0 where player starts)
-- 60% chance of a monster per room
-- Max 10 monsters per floor
-- Monster type is chosen by `pick_monster_type` (based on dungeon level)
-- Spawns at center of room
-- Aggressive monsters (Emu, Hobgoblin, Snake, Zombie) start awake
-- Non-aggressive (Bat) starts asleep, wakes when player is within 5 tiles
+- 6x6 grid, 64x48 tile map
+- 10-20 rooms per floor, 75% chance per grid cell
+- L-shaped corridors connecting sequential rooms
+- Max dungeon level: 13
+- Stairs up in room 0 (except floor 0), stairs down in last room
 
 ---
 
-## Known Balance Issues
+## Dungeon Color Themes
 
-1. **Zombie HP roll**: Uses 1d16 instead of classic 2d8 — zombies can spawn with 1 HP (classic guarantees minimum 2)
-2. **No healing between fights**: No potions, food disabled — HP only recovers on level up (full heal)
-3. **No armor/weapon progression**: Defense and damage are static; only to-hit improves with levels
-4. **Strength unused**: `player_str` is tracked but never factors into combat rolls or damage
-5. **Single attack per monster**: Classic Rogue monsters can have multiple attack dice per turn (e.g., zombie does 1d8 once; classic does 1d8 per attack)
-6. **Bat too hard to hit**: AC 17 (ascending) means level 1 player only hits 30% of the time, but bat only does 1d2 damage — this matches classic Rogue where bats are annoying but harmless
+**Source:** `ppu.asm` → `set_level_bg_color`, `data/palettes.asm`
+
+Each floor has a unique color scheme (cycles through 13 themes). Affects background, wall border, and wall fill colors.

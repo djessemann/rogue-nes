@@ -1,45 +1,56 @@
 ; ============================================================
 ; Monster Data Tables
-; Phase 1: 5 monster types
+; 9 monster types: B E H S Z C T W G
 ; ============================================================
 .segment "RODATA"
 
 ; Monster CHR tiles (which letter to display)
-; B=Bat, E=Emu, H=Hobgoblin, S=Snake, Z=Zombie
 mon_chr_tile:
-    .byte 'B', 'E', 'H', 'S', 'Z'
+    .byte 'B', 'E', 'H', 'S', 'Z', 'C', 'T', 'W', 'G'
 
-; Base HP (max of 1d<value>) — classic Rogue: Nd8 per skill level
+; Base HP (flat value, JRPG-style)
 mon_base_hp:
-    .byte 8, 8, 8, 8, 16       ; B:1d8, E:1d8, H:1d8, S:1d8, Z:2d8
+    ;     B    E    H    S    Z    C    T    W    G
+    .byte 3,   6,   8,   5,   14,  20,  28,  18,  40
 
-; Armor class (ascending: roll must meet/exceed to hit)
-; Converted from classic Rogue descending AC: ascending = 20 - classic
-mon_armor:
-    .byte 17, 13, 15, 15, 12   ; B:AC3→17, E:AC7→13, H:AC5→15, S:AC5→15, Z:AC8→12
+; Attack power (flat value)
+mon_atk:
+    ;     B    E    H    S    Z    C    T    W    G
+    .byte 2,   4,   4,   3,   5,   8,   11,  7,   14
 
-; XP reward (matches classic Rogue)
+; Defense (reduces player damage)
+mon_def:
+    ;     B    E    H    S    Z    C    T    W    G
+    .byte 0,   1,   2,   0,   3,   4,   5,   3,   7
+
+; Evasion (subtracted from hit chance; higher = harder to hit)
+mon_evasion:
+    ;     B    E    H    S    Z    C    T    W    G
+    .byte 30,  5,   5,   20,  0,   10,  5,   20,  10
+
+; XP reward
 mon_xp:
-    .byte 1, 2, 3, 2, 6
+    ;     B    E    H    S    Z    C    T    W    G
+    .byte 1,   2,   3,   2,   6,   15,  50,  55,  100
 
-; Monster level (added to attack rolls) — matches classic skill level
-mon_level:
-    .byte 1, 1, 1, 1, 2
-
-; Max damage per hit (reduced ~20% from classic Rogue damage dice)
-mon_damage:
-    .byte 2, 2, 6, 2, 6        ; B:1d2, E:1d2, H:1d6, S:1d2, Z:1d6
-
-; Base flags (aggressive, erratic, etc.)
-; Classic Rogue: Bat=flying(not mean), Emu=MEAN, H/S/Z=mean
+; Base flags
 mon_base_flags:
-    .byte MFLAG_ERRATIC                     ; Bat: erratic/flying, not aggressive
-    .byte MFLAG_AGGRESSIVE                   ; Emu: mean in classic Rogue
+    .byte MFLAG_ERRATIC                     ; Bat: erratic, not aggressive
+    .byte MFLAG_AGGRESSIVE                   ; Emu: mean
     .byte MFLAG_AGGRESSIVE                   ; Hobgoblin: mean
     .byte MFLAG_AGGRESSIVE                   ; Snake: mean
     .byte MFLAG_AGGRESSIVE                   ; Zombie: mean
+    .byte MFLAG_AGGRESSIVE                   ; Centaur: mean
+    .byte MFLAG_AGGRESSIVE                   ; Troll: mean
+    .byte MFLAG_AGGRESSIVE                   ; Wraith: mean
+    .byte MFLAG_AGGRESSIVE                   ; Griffin: mean
 
-; Item CHR tiles for floor item rendering
+; Item CHR tiles for floor item rendering (indexed by item category)
 item_chr_tile:
     .byte CHR_GOLD              ; ITEM_GOLD = 0
     .byte CHR_FOOD              ; ITEM_FOOD = 1
+    .byte CHR_WEAPON            ; ITEM_WEAPON = 2
+    .byte CHR_ARMOR             ; ITEM_ARMOR = 3
+    .byte CHR_POTION            ; ITEM_POTION = 4
+    .byte CHR_SCROLL            ; ITEM_SCROLL = 5
+    .byte CHR_WAND              ; ITEM_WAND = 6
