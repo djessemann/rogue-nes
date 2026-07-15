@@ -226,22 +226,41 @@ mon_name_hi:
     .byte >str_mon_bat, >str_mon_emu, >str_mon_hobgoblin, >str_mon_snake, >str_mon_zombie
 
 ; ============================================================
-; Title screen BG tile rows — "ROGUE 6502" (28 tiles wide)
-; Centered: start at col 2, (32-28)/2 = 2
-; Each digit has 4 dedicated tiles (no letter reuse):
-;   6 = $94,$95,$96,$97
-;   5 = $98,$99,$9A,$9B
-;   0 = $9C,$9D,$9E,$9F
-;   2 = $A0,$A1,$A2,$A3
+; Title screen — "ROGUE" / "6502" as blocky square tiles
+; Donkey-Kong style: every block is the single solid tile $80.
+; 3x5 block font, 1 blank column between glyphs.
+;   ROGUE : rows 6-10, start col 6  (19 tiles wide)
+;   6502  : rows 12-16, start col 8 (15 tiles wide)
+;
+; title_block_meta: 3 bytes per row = PPU addr hi, addr lo, length.
 ; ============================================================
-TITLE_ROW_LEN = 28
+TITLE_BLOCK_ROWS = 10
 
-title_top_row:
-    ;     R           O           G           U           E              6           5           0           2
-    .byte $80,$81,$20,$84,$85,$20,$88,$89,$20,$8C,$8D,$20,$90,$91,$20,$20,$20,$94,$95,$20,$98,$99,$20,$9C,$9D,$20,$A0,$A1
+title_block_meta:
+    .byte $20,$C6,19   ; ROGUE row 0
+    .byte $20,$E6,19   ; ROGUE row 1
+    .byte $21,$06,19   ; ROGUE row 2
+    .byte $21,$26,19   ; ROGUE row 3
+    .byte $21,$46,19   ; ROGUE row 4
+    .byte $21,$88,15   ; 6502 row 0
+    .byte $21,$A8,15   ; 6502 row 1
+    .byte $21,$C8,15   ; 6502 row 2
+    .byte $21,$E8,15   ; 6502 row 3
+    .byte $22,$08,15   ; 6502 row 4
 
-title_bot_row:
-    .byte $82,$83,$20,$86,$87,$20,$8A,$8B,$20,$8E,$8F,$20,$92,$93,$20,$20,$20,$96,$97,$20,$9A,$9B,$20,$9E,$9F,$20,$A2,$A3
+title_block_data:
+    ; --- ROGUE (5 rows x 19) ---
+    .byte $80,$80,$80,$00,$80,$80,$80,$00,$80,$80,$80,$00,$80,$00,$80,$00,$80,$80,$80
+    .byte $80,$00,$80,$00,$80,$00,$80,$00,$80,$00,$00,$00,$80,$00,$80,$00,$80,$00,$00
+    .byte $80,$80,$80,$00,$80,$00,$80,$00,$80,$00,$80,$00,$80,$00,$80,$00,$80,$80,$80
+    .byte $80,$80,$00,$00,$80,$00,$80,$00,$80,$00,$80,$00,$80,$00,$80,$00,$80,$00,$00
+    .byte $80,$00,$80,$00,$80,$80,$80,$00,$80,$80,$80,$00,$80,$80,$80,$00,$80,$80,$80
+    ; --- 6502 (5 rows x 15) ---
+    .byte $80,$80,$80,$00,$80,$80,$80,$00,$80,$80,$80,$00,$80,$80,$80
+    .byte $80,$00,$00,$00,$80,$00,$00,$00,$80,$00,$80,$00,$00,$00,$80
+    .byte $80,$80,$80,$00,$80,$80,$80,$00,$80,$00,$80,$00,$80,$80,$80
+    .byte $80,$00,$80,$00,$00,$00,$80,$00,$80,$00,$80,$00,$80,$00,$00
+    .byte $80,$80,$80,$00,$80,$80,$80,$00,$80,$80,$80,$00,$80,$80,$80
 
 ; ============================================================
 ; Title screen OAM data — "ROGUE" in large sprites

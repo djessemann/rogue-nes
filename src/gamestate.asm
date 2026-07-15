@@ -73,33 +73,30 @@
     sta ptr_hi
     jsr load_palettes
 
-    ; --- Draw "ROGUE 6502" as background tiles (2x2 per letter) ---
-    ; Row 10 (top halves): PPU $2142 = row 10, col 2
+    ; --- Draw "ROGUE" / "6502" as blocky square tiles ($80) ---
+    ; Donkey-Kong style: each row is stamped from title_block_meta
+    ; (PPU addr hi, addr lo, length) + title_block_data (see strings.asm).
+    ldx #0                      ; meta index (3 bytes per row)
+    ldy #0                      ; running index into title_block_data
+@block_row:
     lda $2002                   ; Reset PPU latch
-    lda #$21
+    lda title_block_meta, x     ; PPU address high
     sta $2006
-    lda #$42
-    sta $2006
-    ldx #0
-@title_top:
-    lda title_top_row, x
-    sta $2007
     inx
-    cpx #TITLE_ROW_LEN
-    bne @title_top
-
-    ; Row 11 (bottom halves): PPU $2162 = row 11, col 2
-    lda #$21
+    lda title_block_meta, x     ; PPU address low
     sta $2006
-    lda #$62
-    sta $2006
-    ldx #0
-@title_bot:
-    lda title_bot_row, x
-    sta $2007
     inx
-    cpx #TITLE_ROW_LEN
-    bne @title_bot
+    lda title_block_meta, x     ; Row length
+    sta temp_1
+    inx
+@block_col:
+    lda title_block_data, y
+    sta $2007
+    iny
+    dec temp_1
+    bne @block_col
+    cpx #(TITLE_BLOCK_ROWS * 3)
+    bne @block_row
 
     ; --- Draw "PRESS START" as background text ---
     lda #<str_press_start
@@ -108,7 +105,7 @@
     sta ptr_hi
     lda #10                     ; X position (centered)
     sta temp_1
-    lda #16                     ; Y position (below divider)
+    lda #20                     ; Y position (below the title)
     sta temp_2
     jsr ppu_draw_text
 
@@ -132,10 +129,10 @@
     lda frame_counter
     and #$20                    ; Toggle every 32 frames
     beq @press_visible
-    ; Hide: clear row 16 via VRAM buffer
+    ; Hide: clear row 20 via VRAM buffer
     lda #$00
     sta temp_1
-    lda #16
+    lda #20
     sta temp_2
     jsr clear_msg_row
     jmp @check_start
@@ -147,7 +144,7 @@
     sta ptr_hi
     lda #10
     sta temp_1
-    lda #16
+    lda #20
     sta temp_2
     jsr draw_text
 

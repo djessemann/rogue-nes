@@ -649,142 +649,21 @@
 .endrepeat
 
 ; ===========================================
-; Large title letters: "ROGUE" as BG tiles $80-$93
-; Each letter = 4 tiles (2 wide x 2 tall = 16x16 pixels)
-; Both bitplanes set = palette index 3
+; Title block glyph: single solid tile ($80)
+; "ROGUE 6502" is drawn as a blocky Donkey-Kong-style font
+; built entirely from this one gold square tile.
+; Both bitplanes set = palette index 3 (gold).
 ; ===========================================
 
-; --- R: tiles $80-$83 ---
-; R top-left ($80)
-    .byte $FF,$FF,$E0,$E0,$E0,$FF,$FF,$E0
-    .byte $FF,$FF,$E0,$E0,$E0,$FF,$FF,$E0
-; R top-right ($81)
-    .byte $C0,$F0,$78,$38,$78,$F0,$C0,$E0
-    .byte $C0,$F0,$78,$38,$78,$F0,$C0,$E0
-; R bottom-left ($82)
-    .byte $E0,$E0,$E0,$E0,$E0,$E0,$E0,$E0
-    .byte $E0,$E0,$E0,$E0,$E0,$E0,$E0,$E0
-; R bottom-right ($83)
-    .byte $70,$38,$1C,$0E,$0E,$07,$07,$07
-    .byte $70,$38,$1C,$0E,$0E,$07,$07,$07
+; --- $80: solid gold square block ---
+    .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+    .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
 
-; --- O: tiles $84-$87 ---
-; O top-left ($84)
-    .byte $1F,$3F,$70,$E0,$E0,$E0,$E0,$E0
-    .byte $1F,$3F,$70,$E0,$E0,$E0,$E0,$E0
-; O top-right ($85)
-    .byte $F8,$FC,$0E,$07,$07,$07,$07,$07
-    .byte $F8,$FC,$0E,$07,$07,$07,$07,$07
-; O bottom-left ($86)
-    .byte $E0,$E0,$E0,$E0,$E0,$70,$3F,$1F
-    .byte $E0,$E0,$E0,$E0,$E0,$70,$3F,$1F
-; O bottom-right ($87)
-    .byte $07,$07,$07,$07,$07,$0E,$FC,$F8
-    .byte $07,$07,$07,$07,$07,$0E,$FC,$F8
-
-; --- G: tiles $88-$8B ---
-; G top-left ($88)
-    .byte $1F,$3F,$70,$E0,$E0,$E0,$E0,$E0
-    .byte $1F,$3F,$70,$E0,$E0,$E0,$E0,$E0
-; G top-right ($89)
-    .byte $F0,$FC,$0E,$00,$00,$3F,$3F,$07
-    .byte $F0,$FC,$0E,$00,$00,$3F,$3F,$07
-; G bottom-left ($8A)
-    .byte $E0,$E0,$E0,$E0,$70,$3F,$1F,$00
-    .byte $E0,$E0,$E0,$E0,$70,$3F,$1F,$00
-; G bottom-right ($8B)
-    .byte $07,$07,$07,$07,$0E,$FC,$F8,$00
-    .byte $07,$07,$07,$07,$0E,$FC,$F8,$00
-
-; --- U: tiles $8C-$8F ---
-; U top-left ($8C)
-    .byte $E0,$E0,$E0,$E0,$E0,$E0,$E0,$E0
-    .byte $E0,$E0,$E0,$E0,$E0,$E0,$E0,$E0
-; U top-right ($8D)
-    .byte $07,$07,$07,$07,$07,$07,$07,$07
-    .byte $07,$07,$07,$07,$07,$07,$07,$07
-; U bottom-left ($8E)
-    .byte $E0,$E0,$E0,$E0,$E0,$70,$3F,$1F
-    .byte $E0,$E0,$E0,$E0,$E0,$70,$3F,$1F
-; U bottom-right ($8F)
-    .byte $07,$07,$07,$07,$07,$0E,$FC,$F8
-    .byte $07,$07,$07,$07,$07,$0E,$FC,$F8
-
-; --- E: tiles $90-$93 ---
-; E top-left ($90)
-    .byte $FF,$FF,$E0,$E0,$E0,$FF,$FF,$E0
-    .byte $FF,$FF,$E0,$E0,$E0,$FF,$FF,$E0
-; E top-right ($91)
-    .byte $FE,$FE,$00,$00,$00,$F0,$F0,$00
-    .byte $FE,$FE,$00,$00,$00,$F0,$F0,$00
-; E bottom-left ($92)
-    .byte $E0,$E0,$E0,$E0,$E0,$E0,$FF,$FF
-    .byte $E0,$E0,$E0,$E0,$E0,$E0,$FF,$FF
-; E bottom-right ($93)
-    .byte $00,$00,$00,$00,$00,$00,$FE,$FE
-    .byte $00,$00,$00,$00,$00,$00,$FE,$FE
-
-; ===========================================
-; Large title digits: "6502" as BG tiles $94-$A3
-; Each digit has 4 dedicated tiles (TL, TR, BL, BR)
-; No reuse from ROGUE letter tiles.
-; ===========================================
-
-; --- 6: tiles $94-$97 ---
-; 6 top-left ($94): top curve, left vert, mid bar, left vert
-    .byte $1F,$3F,$70,$E0,$E0,$FF,$FF,$E0
-    .byte $1F,$3F,$70,$E0,$E0,$FF,$FF,$E0
-; 6 top-right ($95): top curve closes, open right, mid bar curves into right vert
-    .byte $F8,$FC,$0E,$00,$00,$F8,$FC,$0E
-    .byte $F8,$FC,$0E,$00,$00,$F8,$FC,$0E
-; 6 bottom-left ($96): left vert, bottom curve
-    .byte $E0,$E0,$E0,$E0,$70,$3F,$1F,$00
-    .byte $E0,$E0,$E0,$E0,$70,$3F,$1F,$00
-; 6 bottom-right ($97): right vert, bottom curve
-    .byte $07,$07,$07,$07,$0E,$FC,$F8,$00
-    .byte $07,$07,$07,$07,$0E,$FC,$F8,$00
-
-; --- 5: tiles $98-$9B ---
-; 5 top-left ($98): top bar, left vert, mid bar
-    .byte $FF,$FF,$E0,$E0,$E0,$FF,$FF,$00
-    .byte $FF,$FF,$E0,$E0,$E0,$FF,$FF,$00
-; 5 top-right ($99): top bar, empty, mid bar curves into right vert
-    .byte $FE,$FE,$00,$00,$00,$F8,$FC,$0E
-    .byte $FE,$FE,$00,$00,$00,$F8,$FC,$0E
-; 5 bottom-left ($9A): empty, bottom curve
-    .byte $00,$00,$00,$00,$70,$3F,$1F,$00
-    .byte $00,$00,$00,$00,$70,$3F,$1F,$00
-; 5 bottom-right ($9B): right vert, bottom curve
-    .byte $07,$07,$07,$07,$0E,$FC,$F8,$00
-    .byte $07,$07,$07,$07,$0E,$FC,$F8,$00
-
-; --- 0: tiles $9C-$9F ---
-; 0 top-left ($9C): top curve, left vert
-    .byte $1F,$3F,$70,$E0,$E0,$E0,$E0,$E0
-    .byte $1F,$3F,$70,$E0,$E0,$E0,$E0,$E0
-; 0 top-right ($9D): top curve, right vert
-    .byte $F8,$FC,$0E,$07,$07,$07,$07,$07
-    .byte $F8,$FC,$0E,$07,$07,$07,$07,$07
-; 0 bottom-left ($9E): left vert, bottom curve
-    .byte $E0,$E0,$E0,$E0,$70,$3F,$1F,$00
-    .byte $E0,$E0,$E0,$E0,$70,$3F,$1F,$00
-; 0 bottom-right ($9F): right vert, bottom curve
-    .byte $07,$07,$07,$07,$0E,$FC,$F8,$00
-    .byte $07,$07,$07,$07,$0E,$FC,$F8,$00
-
-; --- 2: tiles $A0-$A3 ---
-; 2 top-left ($A0): top curve, open left, bar sweeps in, left vert
-    .byte $1F,$3F,$70,$00,$00,$00,$3F,$FF
-    .byte $1F,$3F,$70,$00,$00,$00,$3F,$FF
-; 2 top-right ($A1): top curve, right vert, widens into bar
-    .byte $F8,$FC,$0E,$07,$07,$1F,$FE,$FC
-    .byte $F8,$FC,$0E,$07,$07,$1F,$FE,$FC
-; 2 bottom-left ($A2): left vert, slight widen into bottom bar
-    .byte $E0,$E0,$E0,$E0,$F0,$FF,$FF,$00
-    .byte $E0,$E0,$E0,$E0,$F0,$FF,$FF,$00
-; 2 bottom-right ($A3): bottom bar only
-    .byte $00,$00,$00,$00,$00,$FE,$FE,$00
-    .byte $00,$00,$00,$00,$00,$FE,$FE,$00
+; --- $81-$A3: freed (formerly custom letter/digit tiles) ---
+.repeat 35
+    .byte $00,$00,$00,$00,$00,$00,$00,$00
+    .byte $00,$00,$00,$00,$00,$00,$00,$00
+.endrepeat
 
 ; ===========================================
 ; Padding $A4-$FF (92 blank tiles)
