@@ -54,11 +54,15 @@ Starting equipment: Mace (+1 enchantment), Leather Armor (+0 enchantment)
 
 | Weapon | ATK Power | Notes |
 |--------|-----------|-------|
+| Dagger | 4 | Weakest; light backup |
 | Mace | 6 | Starting weapon |
 | Short Sword | 7 | Slight upgrade |
+| Battle Axe | 9 | Early-mid |
 | Long Sword | 10 | Mid-tier |
+| Morning Star | 11 | Mid-tier |
 | War Hammer | 12 | Heavy hitter |
-| Two-Hand Sword | 15 | Best weapon, rare |
+| Halberd | 14 | Late-game reach |
+| Two-Hand Sword | 15 | Best weapon |
 
 Enchantment modifier adds directly to ATK (+1, +2, etc). Found weapons spawn with +1 enchantment.
 
@@ -72,10 +76,14 @@ Bare hands: 2 ATK (`constants.asm` → `DEFAULT_WEAPON_POWER`).
 
 | Armor | DEF | Notes |
 |-------|-----|-------|
+| Padded Armor | 3 | Weakest |
 | Leather Armor | 4 | Starting armor |
+| Studded Armor | 5 | Slight upgrade |
 | Ring Mail | 6 | Early upgrade |
 | Scale Mail | 8 | Mid-game |
+| Banded Mail | 9 | Mid-game |
 | Chain Mail | 10 | Late-game |
+| Splint Mail | 11 | Late-game |
 | Plate Mail | 12 | Best armor |
 
 Enchantment modifier adds directly to DEF. Found armor spawns with +0 enchantment.
