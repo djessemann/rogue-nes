@@ -659,8 +659,40 @@
     .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
     .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
 
-; --- $81-$A3: freed (formerly custom letter/digit tiles) ---
-.repeat 35
+; --- $81-$86: UI box-frame tiles (single line) ---
+; $81 box TL
+    .byte $00,$00,$3F,$20
+    .byte $20,$20,$20,$20
+    .byte $00,$00,$00,$00
+    .byte $00,$00,$00,$00
+; $82 box TR
+    .byte $00,$00,$FC,$04
+    .byte $04,$04,$04,$04
+    .byte $00,$00,$00,$00
+    .byte $00,$00,$00,$00
+; $83 box BL
+    .byte $20,$20,$20,$20
+    .byte $20,$3F,$00,$00
+    .byte $00,$00,$00,$00
+    .byte $00,$00,$00,$00
+; $84 box BR
+    .byte $04,$04,$04,$04
+    .byte $04,$FC,$00,$00
+    .byte $00,$00,$00,$00
+    .byte $00,$00,$00,$00
+; $85 box H
+    .byte $00,$00,$FF,$00
+    .byte $00,$00,$00,$00
+    .byte $00,$00,$00,$00
+    .byte $00,$00,$00,$00
+; $86 box V
+    .byte $20,$20,$20,$20
+    .byte $20,$20,$20,$20
+    .byte $00,$00,$00,$00
+    .byte $00,$00,$00,$00
+
+; --- $87-$A3: freed (blank) ---
+.repeat 29
     .byte $00,$00,$00,$00,$00,$00,$00,$00
     .byte $00,$00,$00,$00,$00,$00,$00,$00
 .endrepeat

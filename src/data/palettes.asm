@@ -5,11 +5,12 @@
 
 ; Title screen palette
 palette_title:
-    ; Background palettes
-    .byte $0F, $30, $10, $28    ; BG0: Black, White, Gray, Yellow/Gold
-    .byte $0F, $00, $16, $06    ; BG1: Black, Dark Gray, Red, Dark Red
-    .byte $0F, $30, $1A, $0A    ; BG2: Black, White, Green, Dark Green
-    .byte $0F, $30, $12, $02    ; BG3: Black, White, Blue, Dark Blue
+    ; Background palettes — color 1 is the text color for each (selected
+    ; per screen region via the attribute table).
+    .byte $0F, $30, $10, $28    ; BG0: white text  (gray, gold accents)
+    .byte $0F, $28, $10, $17    ; BG1: GOLD text   (headers / frames)
+    .byte $0F, $16, $10, $06    ; BG2: RED text    (death / danger)
+    .byte $0F, $2A, $10, $0A    ; BG3: GREEN text  (victory / success)
     ; Sprite palettes
     .byte $0F, $17, $27, $28    ; SPR0: Title letters (Brown, Orange, Gold)
     .byte $0F, $30, $10, $00    ; SPR1

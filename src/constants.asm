@@ -43,6 +43,14 @@ CHR_DARKNESS    = $09
 CHR_DIVIDER     = $0A
 CHR_EXPLORED    = $0B           ; Explored but not visible
 
+; UI box-frame tiles (single line)
+CHR_BOX_TL      = $81
+CHR_BOX_TR      = $82
+CHR_BOX_BL      = $83
+CHR_BOX_BR      = $84
+CHR_BOX_H       = $85
+CHR_BOX_V       = $86
+
 ; Item symbol tiles
 CHR_GOLD        = $0C           ; *
 CHR_FOOD        = $0D           ; :

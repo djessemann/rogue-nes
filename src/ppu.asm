@@ -113,6 +113,141 @@
 .endproc
 
 ; ------------------------------------------------------------
+; ppu_set_rc — Point PPUADDR at nametable-0 tile (row, col).
+; Input: A = row (0-29), addr_temp_lo = col (0-31)
+; For NT0, low byte = ((row & 7) << 5) + col always fits one byte,
+; high byte = $20 + (row >> 3).  Must be called with rendering off.
+; Clobbers A. Resets the $2005/$2006 latch via $2002.
+; ------------------------------------------------------------
+.proc ppu_set_rc
+    pha                         ; save row
+    lsr a
+    lsr a
+    lsr a                       ; A = row >> 3
+    clc
+    adc #$20                    ; high byte
+    bit $2002                   ; reset address latch
+    sta $2006
+    pla                         ; A = row
+    and #$07
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; (row & 7) << 5
+    clc
+    adc addr_temp_lo            ; + col
+    sta $2006
+    rts
+.endproc
+
+; ------------------------------------------------------------
+; fill_attr — Fill attribute table 0 ($23C0-$23FF) with A.
+; $00 = palette 0, $55 = pal 1, $AA = pal 2, $FF = pal 3.
+; Must be called with rendering disabled.
+; ------------------------------------------------------------
+.proc fill_attr
+    pha
+    bit $2002
+    lda #$23
+    sta $2006
+    lda #$C0
+    sta $2006
+    pla
+    ldx #64
+@l:
+    sta $2007
+    dex
+    bne @l
+    rts
+.endproc
+
+; ------------------------------------------------------------
+; draw_box — Draw a single-line frame border.
+; Input: temp_1 = left col, temp_2 = top row,
+;        temp_3 = width (>=2), temp_4 = height (>=2)
+; Interior tiles are left untouched. Rendering must be off.
+; Clobbers A/X, temp regs ptr_hi and addr_temp_lo/hi (scratch).
+; ------------------------------------------------------------
+.proc draw_box
+    ; --- Top edge ---
+    lda temp_1
+    sta addr_temp_lo            ; col = left
+    lda temp_2                  ; row = top
+    jsr ppu_set_rc
+    lda #CHR_BOX_TL
+    sta $2007
+    ldx temp_3
+    dex
+    dex                         ; width - 2 interior
+    lda #CHR_BOX_H
+@top:
+    sta $2007
+    dex
+    bne @top
+    lda #CHR_BOX_TR
+    sta $2007
+
+    ; --- Bottom edge ---
+    lda temp_1
+    sta addr_temp_lo
+    lda temp_2
+    clc
+    adc temp_4
+    sec
+    sbc #$01                    ; row = top + height - 1
+    jsr ppu_set_rc
+    lda #CHR_BOX_BL
+    sta $2007
+    ldx temp_3
+    dex
+    dex
+    lda #CHR_BOX_H
+@bot:
+    sta $2007
+    dex
+    bne @bot
+    lda #CHR_BOX_BR
+    sta $2007
+
+    ; --- Side edges: rows top+1 .. top+height-2 ---
+    lda temp_4
+    sec
+    sbc #$02
+    sta addr_temp_hi            ; counter = height - 2
+    lda temp_2
+    clc
+    adc #$01
+    sta ptr_hi                  ; current row
+@side:
+    lda addr_temp_hi
+    beq @done
+    ; left edge (col = left)
+    lda temp_1
+    sta addr_temp_lo
+    lda ptr_hi
+    jsr ppu_set_rc
+    lda #CHR_BOX_V
+    sta $2007
+    ; right edge (col = left + width - 1)
+    lda temp_1
+    clc
+    adc temp_3
+    sec
+    sbc #$01
+    sta addr_temp_lo
+    lda ptr_hi
+    jsr ppu_set_rc
+    lda #CHR_BOX_V
+    sta $2007
+    inc ptr_hi
+    dec addr_temp_hi
+    jmp @side
+@done:
+    rts
+.endproc
+
+; ------------------------------------------------------------
 ; draw_text
 ; Buffer a null-terminated ASCII string into VRAM buffer.
 ; ASCII codes map directly to CHR tile indices.

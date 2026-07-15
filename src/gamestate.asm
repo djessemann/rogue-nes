@@ -1049,6 +1049,19 @@
     sta ptr_hi
     jsr load_palettes
 
+    ; Red theme (all text uses BG palette 2) + framed panel
+    lda #$AA                    ; every attribute quad = palette 2 (red)
+    jsr fill_attr
+    lda #3
+    sta temp_1                  ; left col
+    lda #6
+    sta temp_2                  ; top row
+    lda #26
+    sta temp_3                  ; width
+    lda #15
+    sta temp_4                  ; height
+    jsr draw_box
+
     ; Draw "YOU DIED" centered
     lda #<str_you_died
     sta ptr_lo
@@ -1188,7 +1201,9 @@
 ; ============================================================
 .proc state_win
     lda state_initialized
-    bne @update
+    beq @init
+    jmp @update
+@init:
 
     ; Disable NMI and rendering for safe PPU access
     lda #$00
@@ -1206,23 +1221,74 @@
     sta ptr_hi
     jsr load_palettes
 
+    ; Green theme (all text uses BG palette 3) + framed panel
+    lda #$FF                    ; every attribute quad = palette 3 (green)
+    jsr fill_attr
+    lda #3
+    sta temp_1
+    lda #6
+    sta temp_2
+    lda #26
+    sta temp_3
+    lda #15
+    sta temp_4
+    jsr draw_box
+
+    ; Title
     lda #<str_you_win
     sta ptr_lo
     lda #>str_you_win
     sta ptr_hi
     lda #12
     sta temp_1
-    lda #12
+    lda #9
     sta temp_2
     jsr draw_text
 
+    ; Floor reached
+    lda #<str_floor_reached
+    sta ptr_lo
+    lda #>str_floor_reached
+    sta ptr_hi
+    lda #8
+    sta temp_1
+    lda #12
+    sta temp_2
+    jsr draw_text
+    lda #24
+    sta temp_1
+    lda #12
+    sta temp_2
+    lda dungeon_level
+    clc
+    adc #$01
+    jsr draw_number
+
+    ; Gold collected
+    lda #<str_gold_label
+    sta ptr_lo
+    lda #>str_gold_label
+    sta ptr_hi
+    lda #7
+    sta temp_1
+    lda #14
+    sta temp_2
+    jsr draw_text
+    lda #24
+    sta temp_1
+    lda #14
+    sta temp_2
+    lda player_gold
+    jsr draw_number_3d
+
+    ; Prompt
     lda #<str_press_start
     sta ptr_lo
     lda #>str_press_start
     sta ptr_hi
     lda #10
     sta temp_1
-    lda #18
+    lda #17
     sta temp_2
     jsr draw_text
 
