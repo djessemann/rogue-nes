@@ -1,7 +1,7 @@
 ; ============================================================
 ; HUD — Compact status bar on one row
-; Row 0: HP, Lv, Fl, Gold
-; Row 1: (unused — Str/Def shown on pause screen only)
+; Row 2: HP, Lv, Fl, Gold (16px blank margin above, SMB-style)
+; Rows 0-1: blank top margin (keeps stats clear of TV overscan)
 ; ============================================================
 .segment "CODE"
 
